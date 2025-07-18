@@ -181,7 +181,7 @@ Acesse: [http://127.0.0.1:5000](http://127.0.0.1:5000)
 
 Acesse: `http://127.0.0.1:5000/cadastro`
 
-* Perfil **Gestor**: insira `Token de Gestor`: `Ranch@123`
+* Perfil **Gestor**: insira `Token de Gestor`: `Token@123`
 * Perfil **Contador**: deixe o campo de token em branco
 
 ---
