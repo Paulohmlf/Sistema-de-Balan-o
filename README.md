@@ -232,7 +232,7 @@ Sistema-de-Balan-o/
 * ✅ Hash seguro de senhas com `pbkdf2:sha256`.
 * ✅ SQL parametrizado (contra injeção).
 * ✅ Validação de entrada no frontend e backend.
-* 🔐 Altere o token de gestor `Ranch@123` para produção.
+* 🔐 Altere o token de gestor `Token@123` para produção.
 
 ---
 
