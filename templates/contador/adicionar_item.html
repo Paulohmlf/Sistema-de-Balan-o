@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adicionar Novo Lote - Sistema de Inventário</title>
+    
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#27ae60">
+
+    <style>
+        :root {
+            --primary-color: #10522c;
+            --secondary-color: #166f39;
+            --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            --border-radius: 12px;
+            --error-color: #dc3545;
+            --success-color: #28a745;
+        }
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .page-nav {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            box-shadow: var(--card-shadow);
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+        }
+        .main-container { padding: 2rem 0; }
+        .add-item-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+            border-left: 5px solid var(--primary-color);
+        }
+        .add-item-card__title {
+            color: var(--primary-color);
+            font-weight: 700;
+            margin-bottom: 2rem;
+            text-align: center;
+            font-size: 1.8rem;
+        }
+        .add-item-card__fieldset {
+            border: none;
+            padding: 0;
+            margin: 0 0 1.5rem 0;
+        }
+        .add-item-card__legend {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 1rem;
+            padding: 0;
+            width: auto;
+        }
+        .add-item-card__label {
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 0.5rem;
+        }
+        .add-item-card__input, .add-item-card__select {
+            border-radius: var(--border-radius);
+            padding: 0.875rem 1rem;
+            transition: all 0.3s ease;
+        }
+        .add-item-card__input:focus, .add-item-card__select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(39, 174, 96, 0.25);
+        }
+        .add-item-card__submit-button {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border: none;
+            border-radius: var(--border-radius);
+            padding: 0.875rem 2rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+            width: 100%;
+        }
+        .add-item-card__spinner {
+            width: 1.5rem;
+            height: 1.5rem;
+            color: var(--primary-color);
+        }
+        
+        /* Estilos para validação */
+        .is-invalid {
+            border-color: var(--error-color) !important;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+        }
+        .is-valid {
+            border-color: var(--success-color) !important;
+            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+        }
+        .invalid-feedback {
+            display: block;
+            color: var(--error-color);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        .valid-feedback {
+            display: block;
+            color: var(--success-color);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 0.75rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 1rem;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark page-nav">
+        <div class="container">
+            <a class="navbar-brand" href="/contador/dashboard"><i class="fas fa-plus-circle me-2" aria-hidden="true"></i>Adicionar Novo Lote</a>
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3"><i class="fas fa-user me-1" aria-hidden="true"></i>{{ session.user_full_name }}</span>
+                <a href="/contador/dashboard" class="btn btn-outline-light btn-sm"><i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Voltar ao Painel</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container main-container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <section class="add-item-card">
+                    <header>
+                        <h1 class="add-item-card__title"><i class="fas fa-box me-2" aria-hidden="true"></i>Cadastrar Novo Lote de Produto</h1>
+                    </header>
+                    
+                    <div id="loadingStatus" class="visually-hidden" role="status" aria-live="polite"></div>
+                    
+                    <!-- Container para mensagens de erro gerais -->
+                    <div id="errorContainer" style="display: none;"></div>
+
+                    <form method="POST" action="{{ url_for('contador.adicionar_item') }}" id="addItemForm" novalidate>
+                        <fieldset class="add-item-card__fieldset">
+                            <legend class="add-item-card__legend"><i class="fas fa-industry me-2" aria-hidden="true"></i>1. Selecione o Fornecedor</legend>
+                            <label for="fabricanteSelect" class="form-label visually-hidden">Fornecedor</label>
+                            <select class="form-select add-item-card__select" id="fabricanteSelect" name="fabricante" required>
+                                <option value="" selected disabled>-- Escolha um fornecedor --</option>
+                                {% for fab in fabricantes %}
+                                    <option value="{{ fab }}">{{ fab }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="invalid-feedback" id="fabricanteError"></div>
+                        </fieldset>
+
+                        <fieldset class="add-item-card__fieldset" id="produtoContainer" style="display: none;">
+                            <legend class="add-item-card__legend"><i class="fas fa-box-open me-2" aria-hidden="true"></i>2. Selecione o Produto</legend>
+                            <div class="d-flex align-items-center">
+                                <label for="produtoSelect" class="form-label visually-hidden">Produto</label>
+                                <select class="form-select add-item-card__select" id="produtoSelect" name="produto_codigo" required disabled>
+                                    <option value="" selected disabled>-- Carregando produtos... --</option>
+                                </select>
+                                <div id="loadingSpinner" class="spinner-border ms-2 add-item-card__spinner" role="status" style="display: none;">
+                                    <span class="visually-hidden">Carregando...</span>
+                                </div>
+                            </div>
+                            <div class="invalid-feedback" id="produtoError"></div>
+                            <input type="hidden" id="produtoNomeHidden" name="produto_nome">
+                        </fieldset>
+
+                        <fieldset class="add-item-card__fieldset" id="loteDetailsContainer" style="display: none;">
+                            <legend class="add-item-card__legend"><i class="fas fa-edit me-2" aria-hidden="true"></i>3. Preencha os detalhes do novo lote</legend>
+                            <div class="mb-3">
+                                <label for="novo_lote" class="add-item-card__label">Número do Novo Lote</label>
+                                <input type="text" class="form-control add-item-card__input" id="novo_lote" name="novo_lote" placeholder="Digite o número do lote" required minlength="4" maxlength="13">
+                                <div class="invalid-feedback" id="loteError"></div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="quantidade_balcao" class="add-item-card__label">Quantidade em Balcão</label>
+                                    <input type="number" class="form-control add-item-card__input" id="quantidade_balcao" name="quantidade_balcao" value="0" min="0" step="1" required>
+                                    <div class="invalid-feedback" id="quantidadeBalcaoError"></div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="quantidade_deposito" class="add-item-card__label">Quantidade em Depósito</label>
+                                    <input type="number" class="form-control add-item-card__input" id="quantidade_deposito" name="quantidade_deposito" value="0" min="0" step="1" required>
+                                    <div class="invalid-feedback" id="quantidadeDepositoError"></div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="data_fabricacao" class="add-item-card__label">Data de Fabricação</label>
+                                    <input type="text" class="form-control add-item-card__input" id="data_fabricacao" name="data_fabricacao" placeholder="dd/mm/aaaa" required>
+                                    <div class="invalid-feedback" id="dataFabricacaoError"></div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="data_validade" class="add-item-card__label">Data de Validade</label>
+                                    <input type="text" class="form-control add-item-card__input" id="data_validade" name="data_validade" placeholder="dd/mm/aaaa" required>
+                                    <div class="invalid-feedback" id="dataValidadeError"></div>
+                                </div>
+                            </div>
+                        </fieldset>
+
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary add-item-card__submit-button" id="submitButton" disabled>
+                                <i class="fas fa-save me-2" aria-hidden="true"></i>Salvar Novo Lote
+                            </button>
+                        </div>
+                    </form>
+                </section>
+            </div>
+        </div>
+    </main>
+    
+    <footer class="container text-center py-4">
+        <p>
+            <a href="https://validator.w3.org/check?uri=referer" target="_blank" rel="noopener noreferrer" title="Validar HTML5">
+                <picture>
+                    <source srcset="https://placehold.co/63x64/f06529/ffffff/avif?text=HTML5" type="image/avif">
+                    <source srcset="https://placehold.co/63x64/f06529/ffffff/webp?text=HTML5" type="image/webp">
+                    <img src="https://www.w3.org/html/logo/badge/html5-badge-h-solo.png" width="63" height="64" alt="HTML Válido!">
+                </picture>
+            </a>
+            <a href="https://jigsaw.w3.org/css-validator/check/referer" target="_blank" rel="noopener noreferrer" title="Validar CSS3">
+                 <picture>
+                    <source srcset="https://placehold.co/88x31/2965f1/ffffff/avif?text=CSS3" type="image/avif">
+                    <source srcset="https://placehold.co/88x31/2965f1/ffffff/webp?text=CSS3" type="image/webp">
+                    <img style="border:0;width:88px;height:31px" src="https://jigsaw.w3.org/css-validator/images/vcss-blue" alt="CSS Válido!">
+                </picture>
+            </a>
+        </p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('addItemForm');
+            const fabricanteSelect = document.getElementById('fabricanteSelect');
+            const produtoContainer = document.getElementById('produtoContainer');
+            const produtoSelect = document.getElementById('produtoSelect');
+            const loteDetailsContainer = document.getElementById('loteDetailsContainer');
+            const submitButton = document.getElementById('submitButton');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const produtoNomeHidden = document.getElementById('produtoNomeHidden');
+            const loadingStatus = document.getElementById('loadingStatus');
+            const errorContainer = document.getElementById('errorContainer');
+
+            // Objetos para controle de validação
+            const validators = {
+                fabricante: {
+                    element: fabricanteSelect,
+                    errorElement: document.getElementById('fabricanteError'),
+                    validate: function() {
+                        const isValid = this.element.value !== '';
+                        this.showError(isValid ? '' : 'Por favor, selecione um fornecedor.');
+                        return isValid;
+                    }
+                },
+                produto: {
+                    element: produtoSelect,
+                    errorElement: document.getElementById('produtoError'),
+                    validate: function() {
+                        const isValid = this.element.value !== '';
+                        this.showError(isValid ? '' : 'Por favor, selecione um produto.');
+                        return isValid;
+                    }
+                },
+                novo_lote: {
+                    element: document.getElementById('novo_lote'),
+                    errorElement: document.getElementById('loteError'),
+                    validate: function() {
+                        const value = this.element.value.trim();
+                        let errorMsg = '';
+                        
+                        if (!value) {
+                            errorMsg = 'Número do lote é obrigatório.';
+                        } else if (value.length < 4) {
+                            errorMsg = 'Número do lote deve ter pelo menos 4 caracteres.';
+                        } else if (value.length > 13) {
+                            errorMsg = 'Número do lote deve ter no máximo 13 caracteres.';
+                        }
+                        
+                        this.showError(errorMsg);
+                        return errorMsg === '';
+                    }
+                },
+                quantidade_balcao: {
+                    element: document.getElementById('quantidade_balcao'),
+                    errorElement: document.getElementById('quantidadeBalcaoError'),
+                    validate: function() {
+                        const value = parseFloat(this.element.value);
+                        let errorMsg = '';
+                        
+                        if (isNaN(value) || value < 0) {
+                            errorMsg = 'Quantidade deve ser um número maior ou igual a 0.';
+                        } else if (!Number.isInteger(value)) {
+                            errorMsg = 'Quantidade deve ser um número inteiro.';
+                        }
+                        
+                        this.showError(errorMsg);
+                        return errorMsg === '';
+                    }
+                },
+                quantidade_deposito: {
+                    element: document.getElementById('quantidade_deposito'),
+                    errorElement: document.getElementById('quantidadeDepositoError'),
+                    validate: function() {
+                        const value = parseFloat(this.element.value);
+                        let errorMsg = '';
+                        
+                        if (isNaN(value) || value < 0) {
+                            errorMsg = 'Quantidade deve ser um número maior ou igual a 0.';
+                        } else if (!Number.isInteger(value)) {
+                            errorMsg = 'Quantidade deve ser um número inteiro.';
+                        }
+                        
+                        this.showError(errorMsg);
+                        return errorMsg === '';
+                    }
+                },
+                data_fabricacao: {
+                    element: document.getElementById('data_fabricacao'),
+                    errorElement: document.getElementById('dataFabricacaoError'),
+                    validate: function() {
+                        const value = this.element.value;
+                        const errorMsg = validateDate(value, 'fabricação');
+                        this.showError(errorMsg);
+                        return errorMsg === '';
+                    }
+                },
+                data_validade: {
+                    element: document.getElementById('data_validade'),
+                    errorElement: document.getElementById('dataValidadeError'),
+                    validate: function() {
+                        const value = this.element.value;
+                        const errorMsg = validateDate(value, 'validade');
+                        this.showError(errorMsg);
+                        return errorMsg === '';
+                    }
+                }
+            };
+
+            // Método comum para mostrar/ocultar erros
+            Object.keys(validators).forEach(key => {
+                validators[key].showError = function(errorMsg) {
+                    if (errorMsg) {
+                        this.element.classList.add('is-invalid');
+                        this.element.classList.remove('is-valid');
+                        this.errorElement.textContent = errorMsg;
+                        this.errorElement.style.display = 'block';
+                    } else {
+                        this.element.classList.remove('is-invalid');
+                        this.element.classList.add('is-valid');
+                        this.errorElement.style.display = 'none';
+                    }
+                };
+            });
+
+            // Função para validar formato de data
+            function validateDate(dateString, type) {
+                if (!dateString) {
+                    return `Data de ${type} é obrigatória.`;
+                }
+
+                // Verificar formato dd/mm/aaaa
+                const dateRegex = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+                const match = dateString.match(dateRegex);
+                
+                if (!match) {
+                    return `Data de ${type} deve estar no formato dd/mm/aaaa.`;
+                }
+
+                const [, day, month, year] = match;
+                const dayNum = parseInt(day, 10);
+                const monthNum = parseInt(month, 10);
+                const yearNum = parseInt(year, 10);
+
+                // Validar ranges básicos
+                if (dayNum < 1 || dayNum > 31) {
+                    return 'Dia deve estar entre 1 e 31.';
+                }
+                if (monthNum < 1 || monthNum > 12) {
+                    return 'Mês deve estar entre 1 e 12.';
+                }
+                if (yearNum < 1900 || yearNum > 2100) {
+                    return 'Ano deve estar entre 1900 e 2100.';
+                }
+
+                // Criar objeto Date para validação mais precisa
+                const date = new Date(yearNum, monthNum - 1, dayNum);
+                if (date.getFullYear() !== yearNum || date.getMonth() !== monthNum - 1 || date.getDate() !== dayNum) {
+                    return `Data de ${type} inválida.`;
+                }
+
+                // Validar se a data não está muito no passado ou futuro
+                const today = new Date();
+                const currentYear = today.getFullYear();
+                
+                if (type === 'fabricação') {
+                    if (yearNum > currentYear + 1) {
+                        return 'Data de fabricação não pode ser muito no futuro.';
+                    }
+                    if (yearNum < currentYear - 10) {
+                        return 'Data de fabricação não pode ser muito no passado.';
+                    }
+                }
+
+                if (type === 'validade') {
+                    if (yearNum > currentYear + 50) {
+                        return 'Data de validade não pode ser muito no futuro.';
+                    }
+                    if (date < today) {
+                        return 'Data de validade não pode ser no passado.';
+                    }
+                }
+
+                return '';
+            }
+
+            // Função para validar relação entre datas
+            function validateDateRelation() {
+                const dataFabricacao = document.getElementById('data_fabricacao').value;
+                const dataValidade = document.getElementById('data_validade').value;
+                
+                if (!dataFabricacao || !dataValidade) return '';
+
+                const fabricacaoDate = parseDate(dataFabricacao);
+                const validadeDate = parseDate(dataValidade);
+
+                if (fabricacaoDate && validadeDate && fabricacaoDate >= validadeDate) {
+                    return 'Data de fabricação deve ser anterior à data de validade.';
+                }
+
+                return '';
+            }
+
+            // Função auxiliar para converter string em Date
+            function parseDate(dateString) {
+                const match = dateString.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+                if (!match) return null;
+                const [, day, month, year] = match;
+                return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+            }
+
+            // Função para mostrar erro geral
+            function showGeneralError(message) {
+                errorContainer.innerHTML = `<div class="error-message"><i class="fas fa-exclamation-triangle me-2"></i>${message}</div>`;
+                errorContainer.style.display = 'block';
+                errorContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+
+            // Função para ocultar erro geral
+            function hideGeneralError() {
+                errorContainer.style.display = 'none';
+            }
+
+            // Aplicar máscara de data com validação em tempo real
+            function aplicarMascaraData(input) {
+                input.addEventListener('input', function(e) {
+                    let valor = e.target.value.replace(/\D/g, '').slice(0, 8);
+                    if (valor.length > 4) valor = `${valor.slice(0, 2)}/${valor.slice(2, 4)}/${valor.slice(4)}`;
+                    else if (valor.length > 2) valor = `${valor.slice(0, 2)}/${valor.slice(2)}`;
+                    e.target.value = valor;
+                });
+
+                input.addEventListener('blur', function() {
+                    // Validar campo individual
+                    const fieldName = input.id;
+                    if (validators[fieldName]) {
+                        validators[fieldName].validate();
+                    }
+                    
+                    // Validar relação entre datas
+                    validateDateRelationAndShow();
+                });
+            }
+
+            // Função para validar relação entre datas e mostrar erro
+            function validateDateRelationAndShow() {
+                const relationError = validateDateRelation();
+                if (relationError) {
+                    showGeneralError(relationError);
+                } else {
+                    hideGeneralError();
+                }
+            }
+
+            // Aplicar máscaras e validações
+            aplicarMascaraData(document.getElementById('data_fabricacao'));
+            aplicarMascaraData(document.getElementById('data_validade'));
+
+            // Adicionar validação em tempo real para todos os campos
+            Object.keys(validators).forEach(key => {
+                const validator = validators[key];
+                validator.element.addEventListener('input', function() {
+                    validator.validate();
+                    updateSubmitButton();
+                });
+                validator.element.addEventListener('blur', function() {
+                    validator.validate();
+                    updateSubmitButton();
+                });
+            });
+
+            // Função para atualizar estado do botão submit
+            function updateSubmitButton() {
+                const isValid = Object.keys(validators).every(key => validators[key].validate());
+                const hasDateRelationError = validateDateRelation() !== '';
+                submitButton.disabled = !isValid || hasDateRelationError;
+            }
+
+            // Evento para mudança do fabricante
+            fabricanteSelect.addEventListener('change', function() {
+                const fabricante = this.value;
+                produtoContainer.style.display = 'none';
+                loteDetailsContainer.style.display = 'none';
+                hideGeneralError();
+                
+                validators.fabricante.validate();
+                updateSubmitButton();
+
+                if (!fabricante) return;
+                
+                produtoSelect.innerHTML = '<option value="" selected disabled>-- Carregando... --</option>';
+                produtoSelect.disabled = true;
+                produtoContainer.style.display = 'block';
+                loadingSpinner.style.display = 'inline-block';
+                loadingStatus.textContent = 'Carregando produtos...';
+
+                fetch(`/contador/api/produtos/${encodeURIComponent(fabricante)}`)
+                    .then(response => {
+                        if (!response.ok) throw new Error('Erro na rede');
+                        return response.json();
+                    })
+                    .then(produtos => {
+                        produtoSelect.disabled = false;
+                        produtoSelect.innerHTML = '<option value="" selected disabled>-- Escolha um produto --</option>';
+                        produtos.forEach(produto => {
+                            const option = document.createElement('option');
+                            option.value = produto.codigo;
+                            option.textContent = `${produto.codigo} - ${produto.nome}`;
+                            option.dataset.nome = produto.nome; 
+                            produtoSelect.appendChild(option);
+                        });
+                        loadingStatus.textContent = 'Produtos carregados com sucesso.';
+                    })
+                    .catch(error => {
+                        console.error('Erro ao buscar produtos:', error);
+                        produtoSelect.innerHTML = '<option value="" selected disabled>-- Erro ao carregar --</option>';
+                        loadingStatus.textContent = 'Erro ao carregar produtos.';
+                        showGeneralError('Erro ao carregar produtos. Tente novamente.');
+                    })
+                    .finally(() => {
+                        loadingSpinner.style.display = 'none';
+                    });
+            });
+
+            // Evento para mudança do produto
+            produtoSelect.addEventListener('change', function() {
+                if (this.value) {
+                    const selectedOption = this.options[this.selectedIndex];
+                    produtoNomeHidden.value = selectedOption.dataset.nome;
+                    loteDetailsContainer.style.display = 'block';
+                    document.getElementById('novo_lote').focus();
+                    validators.produto.validate();
+                } else {
+                    loteDetailsContainer.style.display = 'none';
+                    produtoNomeHidden.value = '';
+                    validators.produto.validate();
+                }
+                updateSubmitButton();
+            });
+
+            // Validação no submit do formulário
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Validar todos os campos
+                let isValid = true;
+                Object.keys(validators).forEach(key => {
+                    if (!validators[key].validate()) {
+                        isValid = false;
+                    }
+                });
+                
+                // Validar relação entre datas
+                const dateRelationError = validateDateRelation();
+                if (dateRelationError) {
+                    showGeneralError(dateRelationError);
+                    isValid = false;
+                } else {
+                    hideGeneralError();
+                }
+
+                // Validar se pelo menos uma quantidade é maior que 0
+                const quantidadeBalcao = parseInt(document.getElementById('quantidade_balcao').value) || 0;
+                const quantidadeDeposito = parseInt(document.getElementById('quantidade_deposito').value) || 0;
+                
+                if (quantidadeBalcao + quantidadeDeposito === 0) {
+                    showGeneralError('Pelo menos uma quantidade (balcão ou depósito) deve ser maior que 0.');
+                    isValid = false;
+                }
+
+                if (isValid) {
+                    // Desabilitar botão para evitar duplo submit
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Salvando...';
+                    
+                    // Submeter formulário
+                    this.submit();
+                }
+            });
+
+            // Navegação por teclado
+            const focusableElements = Array.from(form.querySelectorAll('select, input, button'));
+            focusableElements.forEach((element, index) => {
+                element.addEventListener('keydown', function(event) {
+                    if (event.key === 'Enter' && !event.target.matches('button[type="submit"]')) {
+                        const nextElement = focusableElements[index + 1];
+                        if (nextElement) {
+                            event.preventDefault();
+                            nextElement.focus();
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+
+    <script>
+        // Service Worker para cache
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => console.log('Service Worker registrado:', registration.scope))
+                    .catch(error => console.log('Falha ao registrar Service Worker:', error));
+            });
+        }
+    </script>
+
+    <script type="module">
+        // Métricas de performance
+        import { onCLS, onFID, onLCP } from 'https://unpkg.com/web-vitals@3/dist/web-vitals.attribution.js?module';
+        onCLS(console.log);
+        onFID(console.log);
+        onLCP(console.log);
+    </script>
+</body>
+</html>

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recontagem Individual - Sistema de Inventário Otimizado</title>
+    
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#b45309">
+
+    <style>
+        :root {
+            --primary-color: #475569;      /* Ardósia (cinza-azulado) */
+            --secondary-color: #64748b;    /* Ardósia um pouco mais claro */
+            --success-color: #16a34a;      /* Verde sóbrio */
+            --warning-color: #d97706;      /* Ocre/Mostarda escura */
+            --danger-color: #b91c1c;       /* Vermelho fechado */
+            --info-color: #0891b2;         /* Azul-petróleo desaturado */
+            --light-bg: #f8fafc;           /* Fundo branco-gelo */
+            --card-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
+            --border-radius: 12px;
+            --recount-color: #b45309;       /* Cor de canela para recontagem */
+            --recount-dark: #d35400;       /* Cor mais escura para gradiente de recontagem */
+            --recount-light: #fefce8;       /* Fundo creme/marfim para recontagem */
+        }
+        
+        /* CORREÇÃO APLICADA: Fundo da página agora usa a variável da paleta */
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        .page-nav {
+            background: linear-gradient(135deg, var(--recount-color) 0%, var(--recount-dark) 100%);
+            box-shadow: var(--card-shadow);
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+        }
+        .page-nav__brand { font-weight: 700; font-size: 1.5rem; }
+        
+        .main-container { padding: 2rem 0; }
+        
+        .page-header {
+            background: linear-gradient(135deg, var(--recount-color) 0%, var(--recount-dark) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+        }
+        .page-header__title { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .page-header__subtitle { font-size: 1.2rem; opacity: 0.9; margin-bottom: 0; }
+        .page-header__icon { font-size: 4rem; opacity: 0.3; }
+
+        .aviso-recontagem {
+            background-color: #fffaf0;
+            color: #854d0e;
+            padding: 1rem 1.5rem;
+            border-radius: var(--border-radius);
+            border-left: 5px solid #d97706;
+            margin-bottom: 2rem;
+        }
+        .aviso-recontagem strong, .aviso-recontagem .fas {
+            color: #d97706;
+        }
+
+        .recount-alert__title { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem; }
+        
+        .product-card, .instructions-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+            border-left: 4px solid var(--recount-color);
+        }
+
+        .product-card__header { text-align: center; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 2px dashed var(--recount-color); }
+        .product-card__name { font-size: 1.5rem; font-weight: 700; color: #333; margin-bottom: 1rem; }
+        .product-card__info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .product-card__info-item { background: var(--recount-light); padding: 1rem; border-radius: var(--border-radius); text-align: center; }
+        .product-card__label { font-size: 0.875rem; color: #666; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem; }
+        .product-card__value { font-size: 1.25rem; font-weight: 700; color: var(--recount-color); }
+
+        .lote-badge { background: var(--recount-color); color: white; padding: 0.5rem 1rem; border-radius: 25px; font-size: 1rem; font-weight: 600; }
+        .lote-badge--no-lote { background: var(--secondary-color); } /* CORREÇÃO APLICADA */
+
+        .recount-form__section {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 3px dashed var(--recount-color);
+        }
+        .recount-form__title { text-align: center; color: var(--recount-color); font-size: 1.5rem; font-weight: 700; margin-bottom: 2rem; }
+        .recount-form__input {
+            border: 2px solid #e9ecef;
+            border-radius: var(--border-radius);
+            padding: 1rem 1.25rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+            text-align: center;
+        }
+        .recount-form__input:focus { border-color: var(--recount-color); box-shadow: 0 0 0 0.2rem rgba(180, 83, 9, 0.25); }
+        .recount-form__input-label {
+            background: var(--recount-color);
+            color: white;
+            border: 2px solid var(--recount-color);
+            border-radius: var(--border-radius) 0 0 var(--border-radius);
+            font-weight: 600;
+            font-size: 1.1rem;
+            padding: 1rem 1.25rem;
+        }
+        .recount-form__total-display { background: white; border: 3px solid var(--recount-color); border-radius: var(--border-radius); padding: 1.5rem; text-align: center; margin-bottom: 2rem; }
+        .recount-form__total-label { font-size: 1rem; color: #666; margin-bottom: 0.5rem; }
+        .recount-form__total-value { font-size: 2.5rem; font-weight: 700; color: var(--recount-color); }
+        
+        .instructions-card { padding: 1.5rem; background: var(--recount-light); }
+        .instructions-card__title { color: var(--recount-color); font-weight: 600; margin-bottom: 1rem; font-size: 1.1rem; }
+        
+        .action-bar {
+            position: sticky;
+            bottom: 2rem;
+            background: white;
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            border-top: 3px solid var(--recount-color);
+        }
+        
+        .btn-primary { background: linear-gradient(135deg, var(--recount-color) 0%, var(--recount-dark) 100%); border-color: var(--recount-dark); }
+        .btn-secondary { background: linear-gradient(135deg, #6c757d 0%, #495057 100%); }
+
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(180, 83, 9, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(180, 83, 9, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(180, 83, 9, 0); }
+        }
+
+        @media (max-width: 768px) {
+            .main-container { padding: 1rem; }
+            .page-header__title { font-size: 2rem; }
+            .product-card__info-grid { grid-template-columns: 1fr; }
+            .action-bar { position: static; margin-top: 1rem; }
+            .recount-form__total-value { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark page-nav">
+        <div class="container">
+            <a class="page-nav__brand navbar-brand" href="/contador/dashboard"><i class="fas fa-redo me-2" aria-hidden="true"></i>Recontagem Individual</a>
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3"><i class="fas fa-user me-1" aria-hidden="true"></i>{{ session.user_full_name }}</span>
+                <a href="/contador/dashboard" class="btn btn-outline-light btn-sm"><i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Voltar</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container main-container">
+        <header class="page-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="page-header__title"><i class="fas fa-redo me-3" aria-hidden="true"></i>Recontagem Individual</h1>
+                    <p class="page-header__subtitle">Produto solicitado para nova contagem</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <i class="fas fa-exclamation-triangle page-header__icon" aria-hidden="true"></i>
+                </div>
+            </div>
+        </header>
+
+        <section class="aviso-recontagem">
+            <h2 class="h5" style="font-weight: 700;"><i class="fas fa-exclamation-triangle me-2" aria-hidden="true"></i>Atenção: Recontagem Solicitada</h2>
+            <p class="mb-0">Este produto foi marcado para recontagem devido a divergências identificadas. Proceda com a nova contagem com atenção especial.</p>
+        </section>
+
+        <section class="product-card">
+            <header class="product-card__header">
+                <h2 class="product-card__name"><i class="fas fa-box me-2" aria-hidden="true"></i>{{ item.PRODUTO }}</h2>
+            </header>
+
+            <div class="product-card__info-grid">
+                <div class="product-card__info-item">
+                    <div class="product-card__label"><i class="fas fa-barcode me-1" aria-hidden="true"></i>Código</div>
+                    <div class="product-card__value">{{ item.CÓDIGO }}</div>
+                </div>
+                <div class="product-card__info-item">
+                    <div class="product-card__label"><i class="fas fa-tag me-1" aria-hidden="true"></i>Lote</div>
+                    <div class="product-card__value"><span class="lote-badge {{ 'lote-badge--no-lote' if not item.LOTE or item.LOTE == 'N/A' else '' }}">{{ item.LOTE if item.LOTE and item.LOTE != 'N/A' else 'Sem Lote' }}</span></div>
+                </div>
+                <div class="product-card__info-item">
+                    <div class="product-card__label"><i class="fas fa-industry me-1" aria-hidden="true"></i>Fabricante</div>
+                    <div class="product-card__value">{{ item.FABRICANTE }}</div>
+                </div>
+            </div>
+
+            {% if item.CONTADOR_ORIGINAL %}
+                <div class="alert alert-info">
+                    <h3 class="h6"><i class="fas fa-info-circle me-2" aria-hidden="true"></i>Informações da Recontagem</h3>
+                    <p class="mb-1"><strong>Contador Original:</strong> {{ item.CONTADOR_ORIGINAL }}</p>
+                    {% if item.HORARIO_RECONTAGEM_SOLICITADA %}<p class="mb-1"><strong>Solicitada em:</strong> {{ item.HORARIO_RECONTAGEM_SOLICITADA }}</p>{% endif %}
+                    {% if item.GESTOR_RECONTAGEM %}<p class="mb-0"><strong>Solicitada por:</strong> {{ item.GESTOR_RECONTAGEM }}</p>{% endif %}
+                </div>
+            {% endif %}
+        </section>
+
+        <section class="instructions-card">
+            <h2 class="instructions-card__title h5"><i class="fas fa-clipboard-list me-2" aria-hidden="true"></i>Instruções para Recontagem</h2>
+            <ul class="mb-0">
+                <li>Realize uma nova contagem física completa do produto</li>
+                <li>Conte separadamente o estoque do balcão e do depósito</li>
+                <li>Confira cuidadosamente o código e lote do produto</li>
+                <li>Em caso de dúvida, consulte o supervisor responsável</li>
+            </ul>
+        </section>
+
+        <form method="POST" action="/contador/salvar_recontagem" id="recountForm">
+            <input type="hidden" name="codigo" value="{{ item.CÓDIGO }}">
+            <input type="hidden" name="lote" value="{{ item.LOTE if item.LOTE and item.LOTE != 'N/A' else '' }}">
+            
+            <fieldset class="recount-form__section" role="group" aria-labelledby="form-legend">
+                <legend class="recount-form__title" id="form-legend"><i class="fas fa-calculator me-2" aria-hidden="true"></i>Nova Contagem</legend>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="input-group">
+                            <label for="estoque_balcao" class="input-group-text recount-form__input-label"><i class="fas fa-store me-2" aria-hidden="true"></i>Balcão</label>
+                            <input type="number" class="form-control recount-form__input" id="estoque_balcao" name="estoque_balcao" placeholder="0" min="0" step="1" required autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="input-group">
+                            <label for="estoque_deposito" class="input-group-text recount-form__input-label"><i class="fas fa-warehouse me-2" aria-hidden="true"></i>Depósito</label>
+                            <input type="number" class="form-control recount-form__input" id="estoque_deposito" name="estoque_deposito" placeholder="0" min="0" step="1" required autocomplete="off">
+                        </div>
+                    </div>
+                </div>
+                <div class="recount-form__total-display">
+                    <div class="recount-form__total-label">Total Geral (Balcão + Depósito)</div>
+                    <div class="recount-form__total-value" id="total-display">0</div>
+                </div>
+            </fieldset>
+
+            <div class="action-bar">
+                <div class="row">
+                    <div class="col-md-6 mb-2 mb-md-0">
+                        <button type="submit" class="btn btn-primary w-100 pulse" id="btnSalvar"><i class="fas fa-check me-2" aria-hidden="true"></i>Salvar Recontagem</button>
+                    </div>
+                    <div class="col-md-6">
+                        {% set lote_param = item.LOTE if item.LOTE and item.LOTE != 'N/A' else '' %}
+                        {% set lote_encoded = lote_param|urlencode if lote_param else '' %}
+                        <button type="button" class="btn btn-secondary w-100" data-bs-toggle="modal" data-bs-target="#confirmCancelModal" data-cancel-url="/contador/cancelar_recontagem_item/{{ item.CÓDIGO }}/{{ lote_encoded }}"><i class="fas fa-times me-2" aria-hidden="true"></i>Cancelar Recontagem</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </main>
+    
+    <aside class="floating-help position-fixed bottom-0 end-0 m-4">
+        <button class="btn rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px; background-color: var(--info-color); color: white;" data-bs-toggle="modal" data-bs-target="#helpModal" title="Ajuda">
+            <i class="fas fa-question fs-4" aria-hidden="true"></i>
+        </button>
+    </aside>
+
+    <footer class="container text-center mt-5 mb-3">
+        <p>
+            <a href="https://validator.w3.org/check?uri=referer" target="_blank" rel="noopener noreferrer" title="Validar HTML5"><img src="https://www.w3.org/html/logo/badge/html5-badge-h-solo.png" width="63" height="64" alt="HTML Válido!"></a>
+            <a href="https://jigsaw.w3.org/css-validator/check/referer" target="_blank" rel="noopener noreferrer" title="Validar CSS3"><img style="border:0;width:88px;height:31px" src="https://jigsaw.w3.org/css-validator/images/vcss-blue" alt="CSS Válido!"></a>
+        </p>
+    </footer>
+
+    <div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="helpModalLabel"><i class="fas fa-question-circle me-2"></i>Ajuda - Recontagem</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><p>Preencha os campos com as quantidades contadas no balcão e no depósito. O total é calculado automaticamente.</p><hr><h6>Dicas:</h6><ul><li>Confira o código e lote com atenção.</li><li>Em caso de dúvida, consulte um supervisor.</li></ul></div><div class="modal-footer"><button type="button" class="btn btn-primary" data-bs-dismiss="modal">Entendi</button></div></div>
+        </div>
+    </div>
+    <div class="modal fade" id="confirmCancelModal" tabindex="-1" aria-labelledby="confirmCancelModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="confirmCancelModalLabel"><i class="fas fa-exclamation-triangle me-2"></i>Confirmar Cancelamento</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body">Tem certeza que deseja cancelar esta recontagem? Esta ação não pode ser desfeita.</div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Voltar</button><a href="#" id="confirmCancelLink" class="btn btn-danger">Sim, Cancelar</a></div></div></div>
+    </div>
+    <div class="modal fade" id="confirmSaveModal" tabindex="-1" aria-labelledby="confirmSaveModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="confirmSaveModalLabel"><i class="fas fa-check-circle me-2"></i>Confirmar Recontagem</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body" id="saveModalBody"></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Revisar</button><button type="button" id="confirmSaveButton" class="btn btn-primary">Salvar</button></div></div></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const balcaoInput = document.getElementById('estoque_balcao');
+            const depositoInput = document.getElementById('estoque_deposito');
+            const totalDisplay = document.getElementById('total-display');
+            const form = document.getElementById('recountForm');
+            const saveButton = document.getElementById('btnSalvar');
+
+            const confirmSaveModal = new bootstrap.Modal(document.getElementById('confirmSaveModal'));
+            const confirmCancelModalEl = document.getElementById('confirmCancelModal');
+
+            balcaoInput.focus();
+            
+            function calcularTotal() {
+                const balcao = parseInt(balcaoInput.value) || 0;
+                const deposito = parseInt(depositoInput.value) || 0;
+                totalDisplay.textContent = balcao + deposito;
+            }
+            
+            [balcaoInput, depositoInput].forEach(input => {
+                input.addEventListener('input', () => { 
+                    if (input.value < 0) input.value = 0;
+                    calcularTotal(); 
+                });
+            });
+            
+            balcaoInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); depositoInput.focus(); } });
+            depositoInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); saveButton.focus(); saveButton.click(); } });
+            
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const balcao = parseInt(balcaoInput.value) || 0;
+                const deposito = parseInt(depositoInput.value) || 0;
+                
+                let confirmationMessage = `Confirma a recontagem?<br><br><strong>Balcão:</strong> ${balcao}<br><strong>Depósito:</strong> ${deposito}<br><strong class="h5">Total: ${balcao + deposito}</strong>`;
+
+                if (balcao === 0 && deposito === 0) {
+                    confirmationMessage = `<p class="text-danger"><strong>Atenção:</strong> Ambos os valores estão zerados. Deseja continuar?</p>` + confirmationMessage;
+                }
+                
+                document.getElementById('saveModalBody').innerHTML = confirmationMessage;
+                confirmSaveModal.show();
+            });
+
+            document.getElementById('confirmSaveButton').addEventListener('click', () => form.submit());
+            
+            if(confirmCancelModalEl) {
+                confirmCancelModalEl.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    const cancelUrl = button.getAttribute('data-cancel-url');
+                    const confirmLink = document.getElementById('confirmCancelLink');
+                    confirmLink.setAttribute('href', cancelUrl);
+                });
+            }
+
+            calcularTotal();
+        });
+    </script>
+</body>
+</html>

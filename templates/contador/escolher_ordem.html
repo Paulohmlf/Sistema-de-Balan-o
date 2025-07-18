@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escolher Ordem - Sistema de Inventário Otimizado</title>
+    
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#667eea">
+
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --balcao-color: #e74c3c;
+            --deposito-color: #3498db;
+            --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            --border-radius: 12px;
+        }
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .page-nav {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            box-shadow: var(--card-shadow);
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+        }
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 3rem;
+            box-shadow: var(--card-shadow);
+            text-align: center;
+        }
+        .page-header__title { font-size: 2.5rem; font-weight: 700; }
+        .main-container { padding: 3rem 0; }
+        .choice-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        .choice-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 3px solid transparent;
+            text-align: center;
+        }
+        .choice-card:hover, .choice-card:focus-within {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15);
+        }
+        .choice-card:focus-visible {
+            outline: 3px solid var(--primary-color);
+            outline-offset: 3px;
+        }
+        .choice-card--balcao { border-color: var(--balcao-color); }
+        .choice-card--balcao:hover { background: linear-gradient(135deg, #fadbd8 0%, #f8f9fa 100%); }
+        .choice-card--deposito { border-color: var(--deposito-color); }
+        .choice-card--deposito:hover { background: linear-gradient(135deg, #d6eaf8 0%, #f8f9fa 100%); }
+        .choice-card__icon {
+            width: 80px; height: 80px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; margin: 0 auto 1.5rem; color: white;
+        }
+        .choice-card__icon--balcao { background: linear-gradient(135deg, var(--balcao-color) 0%, #c0392b 100%); }
+        .choice-card__icon--deposito { background: linear-gradient(135deg, var(--deposito-color) 0%, #2980b9 100%); }
+        .choice-card__title { font-size: 1.5rem; font-weight: 700; margin-bottom: 1rem; }
+        .choice-card__title--balcao { color: var(--balcao-color); }
+        .choice-card__title--deposito { color: var(--deposito-color); }
+        .choice-card__description { color: #666; margin-bottom: 1.5rem; line-height: 1.6; }
+        .choice-card__button {
+            border-radius: 25px; padding: 0.875rem 2rem;
+            font-weight: 600; font-size: 1.1rem;
+            border: none; width: 100%; color: white;
+        }
+        .choice-card__button--balcao { background: linear-gradient(135deg, var(--balcao-color) 0%, #c0392b 100%); }
+        .choice-card__button--deposito { background: linear-gradient(135deg, var(--deposito-color) 0%, #2980b9 100%); }
+        
+        @media (max-width: 768px) {
+            .choice-container { grid-template-columns: 1fr; }
+            .main-container { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark page-nav">
+        <div class="container">
+            <a class="navbar-brand" href="/contador/dashboard"><i class="fas fa-route me-2" aria-hidden="true"></i>Escolher Ordem de Contagem</a>
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3"><i class="fas fa-user me-1" aria-hidden="true"></i>{{ session.user_full_name }}</span>
+                <a href="/contador/dashboard" class="btn btn-outline-light btn-sm"><i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Voltar</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container main-container">
+        <header class="page-header">
+            <h1 class="page-header__title"><i class="fas fa-route me-3" aria-hidden="true"></i>Escolha a Ordem de Contagem</h1>
+            <p class="mb-0">Fabricante: <strong>{{ fabricante }}</strong></p>
+        </header>
+
+        <form method="POST" action="/contador/iniciar_contagem" id="ordemForm">
+            <input type="hidden" name="fabricante" value="{{ fabricante }}">
+            <input type="hidden" name="ordem" id="ordemSelecionada">
+
+            <section class="choice-container" aria-labelledby="choice-section-title">
+                <h2 id="choice-section-title" class="visually-hidden">Opções de Ordem de Contagem</h2>
+                
+                <article class="choice-card choice-card--balcao" tabindex="0" role="button" aria-labelledby="balcao-title" data-ordem="balcao" data-ordem-nome="Balcão">
+                    <div class="choice-card__icon choice-card__icon--balcao"><i class="fas fa-store" aria-hidden="true"></i></div>
+                    <h3 class="choice-card__title choice-card__title--balcao" id="balcao-title">Começar pelo Balcão</h3>
+                    <p class="choice-card__description">Inicie a contagem pelos produtos expostos no balcão e depois continue para o depósito.</p>
+                    <button type="button" class="choice-card__button choice-card__button--balcao"><i class="fas fa-play me-2" aria-hidden="true"></i>Iniciar pelo Balcão</button>
+                </article>
+
+                <article class="choice-card choice-card--deposito" tabindex="0" role="button" aria-labelledby="deposito-title" data-ordem="deposito" data-ordem-nome="Depósito">
+                    <div class="choice-card__icon choice-card__icon--deposito"><i class="fas fa-warehouse" aria-hidden="true"></i></div>
+                    <h3 class="choice-card__title choice-card__title--deposito" id="deposito-title">Começar pelo Depósito</h3>
+                    <p class="choice-card__description">Inicie a contagem pelos produtos armazenados no depósito e depois finalize com o balcão.</p>
+                    <button type="button" class="choice-card__button choice-card__button--deposito"><i class="fas fa-play me-2" aria-hidden="true"></i>Iniciar pelo Depósito</button>
+                </article>
+            </section>
+        </form>
+
+        <section class="p-4 rounded" style="background-color: white; border-left: 4px solid #17a2b8;">
+            <h2 class="h6"><i class="fas fa-info-circle me-2" aria-hidden="true"></i>Informações Importantes</h2>
+            <ul class="mb-0 small">
+                <li><strong>Flexibilidade:</strong> Você pode escolher a ordem que melhor se adapta à sua situação atual.</li>
+                <li><strong>Continuidade:</strong> Após completar a primeira etapa, você será direcionado automaticamente para a segunda.</li>
+                <li><strong>Salvamento:</strong> Seu progresso é salvo automaticamente em cada etapa.</li>
+            </ul>
+        </section>
+    </main>
+    
+    <!-- Modal de Confirmação -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmModalLabel"><i class="fas fa-question-circle me-2"></i>Confirmar Início</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="confirmModalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" id="confirmModalButton" class="btn btn-primary">Sim, Iniciar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <footer class="container text-center py-4">
+        <p>
+            <!-- 
+              OTIMIZAR IMAGENS: Uso do elemento <picture>.
+              O navegador escolhe o formato mais eficiente (AVIF > WebP > PNG) para carregar mais rápido.
+            -->
+            <a href="https://validator.w3.org/check?uri=referer" target="_blank" rel="noopener noreferrer" title="Validar HTML5">
+                <picture>
+                    <source srcset="https://placehold.co/63x64/f06529/ffffff/avif?text=HTML5" type="image/avif">
+                    <source srcset="https://placehold.co/63x64/f06529/ffffff/webp?text=HTML5" type="image/webp">
+                    <img src="https://www.w3.org/html/logo/badge/html5-badge-h-solo.png" width="63" height="64" alt="HTML Válido!">
+                </picture>
+            </a>
+            <a href="https://jigsaw.w3.org/css-validator/check/referer" target="_blank" rel="noopener noreferrer" title="Validar CSS3">
+                 <picture>
+                    <source srcset="https://placehold.co/88x31/2965f1/ffffff/avif?text=CSS3" type="image/avif">
+                    <source srcset="https://placehold.co/88x31/2965f1/ffffff/webp?text=CSS3" type="image/webp">
+                    <img style="border:0;width:88px;height:31px" src="https://jigsaw.w3.org/css-validator/images/vcss-blue" alt="CSS Válido!">
+                </picture>
+            </a>
+        </p>
+    </footer>
+
+    <!-- 
+      PROCESSO DE BUILD (MINIFICAÇÃO E BUNDLING DE JS):
+      Em produção, este script seria combinado com outros e minificado para performance.
+    -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('ordemForm');
+            const ordemInput = document.getElementById('ordemSelecionada');
+            const choiceCards = document.querySelectorAll('.choice-card');
+            const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+            const confirmModalBody = document.getElementById('confirmModalBody');
+            const confirmButton = document.getElementById('confirmModalButton');
+
+            function handleChoice(ordem, nomeOpcao) {
+                ordemInput.value = ordem;
+                confirmModalBody.textContent = `Confirma que deseja iniciar a contagem pelo ${nomeOpcao}?`;
+                confirmModal.show();
+            }
+            
+            choiceCards.forEach(card => {
+                const ordem = card.dataset.ordem;
+                const nomeOpcao = card.dataset.ordemNome;
+
+                card.addEventListener('click', () => handleChoice(ordem, nomeOpcao));
+                
+                card.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleChoice(ordem, nomeOpcao);
+                    }
+                });
+            });
+
+            confirmButton.addEventListener('click', () => {
+                form.submit();
+            });
+        });
+    </script>
+
+    <script>
+        // --- ADICIONAR SERVICE WORKER PARA CACHE ---
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => console.log('Service Worker registrado:', registration.scope))
+                    .catch(error => console.log('Falha ao registrar Service Worker:', error));
+            });
+        }
+        /*
+          CONTEÚDO DO ARQUIVO /service-worker.js (EXEMPLO)
+          const CACHE_NAME = 'escolher-ordem-cache-v1';
+          const urlsToCache = [
+            '/contador/escolher_ordem/{{ fabricante_encoded }}',
+            '/contador/dashboard',
+            'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css',
+            'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css',
+            'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js'
+          ];
+          self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(urlsToCache))));
+          self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
+        */
+    </script>
+
+    <script type="module">
+        // --- IMPLEMENTAR MÉTRICAS DE PERFORMANCE (CORE WEB VITALS) ---
+        import { onCLS, onFID, onLCP } from 'https://unpkg.com/web-vitals@3/dist/web-vitals.attribution.js?module';
+        onCLS(console.log);
+        onFID(console.log);
+        onLCP(console.log);
+    </script>
+</body>
+</html>

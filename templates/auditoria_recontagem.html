@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auditoria e Recontagem - Sistema Otimizado</title>
+
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://code.jquery.com" crossorigin>
+
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#8e44ad">
+
+    <style>
+        :root {
+            --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            --border-radius: 12px;
+            --audit-color: #8e44ad;
+            --audit-light: #f3e5f5;
+        }
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .recontagem-verificado {
+            background-color: #fff3cd; /* Amarelo claro para destaque */
+            color: #856404;
+            font-weight: bold;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+        }
+        .page-nav {
+            background: linear-gradient(135deg, var(--audit-color) 0%, #9b59b6 100%);
+            box-shadow: var(--card-shadow);
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+        }
+        .page-nav__brand { font-weight: 700; font-size: 1.5rem; }
+        .main-container { padding: 2rem 0; }
+        .page-header {
+            background: linear-gradient(135deg, var(--audit-color) 0%, #9b59b6 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+        }
+        .page-header__title { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .page-header__subtitle { font-size: 1.2rem; opacity: 0.9; margin-bottom: 0; }
+        .filter-card, .results-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+        }
+        .filter-card { border-left: 4px solid var(--audit-color); }
+        .filter-card__title {
+            color: var(--audit-color);
+            font-weight: 600;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+        .results-card__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .results-card__title { color: var(--audit-color); font-weight: 700; font-size: 1.3rem; margin: 0; }
+        .results-card__count {
+            background: var(--audit-light);
+            color: var(--audit-color);
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-weight: 600;
+        }
+        .bulk-actions {
+            background: var(--audit-light);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--audit-color);
+        }
+        .bulk-actions-bottom {
+            background: var(--audit-light);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            margin-top: 1rem;
+            border-left: 4px solid var(--audit-color);
+        }
+        .divergence-badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: center;
+            min-width: 80px;
+            display: inline-block;
+            color: white;
+        }
+        .divergence-badge--high { background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); }
+        .divergence-badge--medium { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .divergence-badge--low { background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%); color: #2d3436; }
+        .divergence-badge--ok { background: linear-gradient(135deg, #00b894 0%, #00cec9 100%); }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(142, 68, 173, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(142, 68, 173, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(142, 68, 173, 0); }
+        }
+        
+        /* Oculta o controle de paginação do DataTables */
+        .dataTables_length {
+            display: none !important;
+        }
+
+        
+        .recontagem-count {
+            background: #e9ecef;
+            color: #495057;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        /* Estilos adicionais para os novos campos */
+        .bulk-actions .form-select {
+            max-width: 250px; /* Limita a largura do select para melhor visualização */
+        }
+        /* Estilo para a nova coluna de checkboxes */
+        .checkbox-cell {
+            display: flex;
+            gap: 10px; /* Espaçamento entre os checkboxes */
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark page-nav">
+        <div class="container">
+            <a class="navbar-brand page-nav__brand" href="/"><i class="fas fa-search me-2" aria-hidden="true"></i>Auditoria e Recontagem</a>
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3"><i class="fas fa-user me-1" aria-hidden="true"></i>{{ session.user_full_name }}</span>
+                <a href="/" class="btn btn-outline-light btn-sm"><i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Voltar</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container main-container">
+        <header class="page-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="page-header__title"><i class="fas fa-search me-3" aria-hidden="true"></i>Auditoria e Recontagem</h1>
+                    <p class="page-header__subtitle">Análise de divergências e solicitação de recontagens</p>
+                </div>
+                <div class="col-md-4 text-end"><i class="fas fa-chart-line" style="font-size: 4rem; opacity: 0.3;" aria-hidden="true"></i></div>
+            </div>
+        </header>
+
+        <section class="filter-card">
+            <h2 class="filter-card__title h5"><i class="fas fa-filter me-2" aria-hidden="true"></i>Filtros de Análise</h2>
+            <form method="POST" action="/auditoria_recontagem" id="analysisForm">
+                <div class="row align-items-end">
+                    <div class="col-md-6 mb-3">
+                        <label for="fabricante_analisado" class="form-label"><i class="fas fa-industry me-1" aria-hidden="true"></i>Fabricante para Análise</label>
+                        <select class="form-select" id="fabricante_analisado" name="fabricante_analisado" required>
+                            <option value="">Selecione um fabricante...</option>
+                            {# Aqui, o value é o nome 'limpo' e o texto exibido é o nome 'display' (com ou sem verificado) #}
+                            {% for fab_nome, nome_display in fabricantes_concluidos.items() %}
+                                <option value="{{ fab_nome }}" {% if fab_nome == fabricante_analisado_atual %}selected{% endif %}>{{ nome_display }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="percentual_referencia" class="form-label"><i class="fas fa-percentage me-1" aria-hidden="true"></i>Percentual de Referência (%)</label>
+                        <input type="number" class="form-control" id="percentual_referencia" name="percentual_referencia" value="{{ percentual_referencia_aplicado if percentual_referencia_aplicado else '5' }}" min="0" max="100" step="0.1" placeholder="5.0">
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <button type="submit" name="analisar_fabricante_btn" class="btn btn-primary w-100"><i class="fas fa-search me-2" aria-hidden="true"></i>Analisar</button>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        <section class="results-card">
+            {% if fabricante_analisado_atual %} {# Verifica se um fabricante foi selecionado para análise #}
+                <header class="results-card__header">
+                    <h2 class="results-card__title h3">
+                        <i class="fas fa-clipboard-list me-2" aria-hidden="true"></i>Análise de Divergências - {{ fabricante_analisado_display }}
+                    </h2>
+                    <span class="results-card__count">{{ itens_para_analise|length }} itens encontrados</span>
+                </header>
+
+                {# Exibe a tabela apenas se houver itens para análise #}
+                {% if itens_para_analise %}
+                    <div class="bulk-actions">
+                        <h3 class="h6"><i class="fas fa-tasks me-2" aria-hidden="true"></i>Ações em Lote</h3>
+                        {# Formulário não é submetido diretamente, é usado para coletar dados #}
+                        <form id="bulkActionForm" class="d-flex align-items-center gap-3 flex-wrap"> 
+                            <label class="form-check-label d-flex align-items-center me-3">
+                                <input type="checkbox" class="form-check-input" id="selectAllRecount" style="transform: scale(1.2);">
+                                <span class="ms-2">Selecionar Todos para Recontagem</span>
+                            </label>
+                            <label class="form-check-label d-flex align-items-center me-3">
+                                <input type="checkbox" class="form-check-input" id="selectAllValidate" style="transform: scale(1.2);">
+                                <span class="ms-2">Selecionar Todos para Validar</span>
+                            </label>
+                            {# Botão unificado #}
+                            <button type="button" class="btn btn-primary ms-2" id="executeBulkActionButton" disabled><i class="fas fa-play me-2" aria-hidden="true"></i>Executar Ações Selecionadas</button>
+                            <span class="text-muted ms-3" id="selectedRecountCount" aria-live="polite">0 para Recontagem</span>
+                            <span class="text-muted ms-3" id="selectedValidateCount" aria-live="polite">0 para Validar</span>
+                        </form>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="divergenceTable">
+                            <thead>
+                                <tr>
+                                    <th>Ações</th> {# Coluna única para checkboxes #}
+                                    <th>Código</th>
+                                    <th>Produto</th>
+                                    <th>Lote</th>
+                                    <th>Est. Sistema</th>
+                                    <th>Inventário</th>
+                                    <th>Diferença</th>
+                                    <th>Divergência</th>
+                                    <th>Status</th>
+                                    <th>Recontagens</th>
+                                    <th>Validado</th> {# NOVA COLUNA #}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in itens_para_analise %}
+                                    <tr>
+                                        <td class="text-center checkbox-cell"> {# Nova célula flex para os 2 checkboxes #}
+                                            <input type="checkbox" class="form-check-input item-checkbox-recount" 
+                                                    data-codigo="{{ item.CÓDIGO }}" 
+                                                    data-lote="{{ item.LOTE if item.LOTE and item.LOTE|string|lower != 'nan' else '' }}" 
+                                                    aria-label="Marcar para Recontagem {{ item.PRODUTO }}">
+                                            <input type="checkbox" class="form-check-input item-checkbox-validate" 
+                                                    data-codigo="{{ item.CÓDIGO }}" 
+                                                    data-lote="{{ item.LOTE if item.LOTE and item.LOTE|string|lower != 'nan' else '' }}" 
+                                                    aria-label="Marcar para Validar {{ item.PRODUTO }}"
+                                                    {% if item.VALIDADO == 'Sim' %}checked{% endif %}>
+                                        </td>
+                                        <td><code>{{ item.CÓDIGO }}</code></td>
+                                        <td class="text-start" title="{{ item.PRODUTO }}">{{ item.PRODUTO }}</td>
+                                        <td>{{ item.LOTE if item.LOTE and item.LOTE|string|lower != 'nan' else 'N/A' }}</td>
+                                        <td><strong>{{ item.ESTOQUE_SISTEMA }}</strong></td>
+                                        <td><strong>{{ item.INVENTARIO }}</strong></td>
+                                        <td>
+                                            {% set diferenca = item.DIFERENCA_NUMERICA_CALC %}
+                                            <span class="{% if diferenca > 0 %}text-success{% elif diferenca < 0 %}text-danger{% endif %} fw-bold">{% if diferenca > 0 %}+{% endif %}{{ diferenca }}</span>
+                                        </td>
+                                        <td>
+                                            {% set divergencia = item.DIVERGENCIA_PERCENTUAL_CALC %}
+                                            {% if divergencia == 'Máxima (Est.Sist. 0)' %}<span class="divergence-badge divergence-badge--high">MÁXIMA</span>
+                                            {% elif divergencia >= (percentual_referencia_aplicado|float * 2) %}<span class="divergence-badge divergence-badge--high">{{ "%.1f"|format(divergencia) }}%</span>
+                                            {% elif divergencia >= percentual_referencia_aplicado|float %}<span class="divergence-badge divergence-badge--medium">{{ "%.1f"|format(divergencia) }}%</span>
+                                            {% elif divergencia > 0 %}<span class="divergence-badge divergence-badge--low">{{ "%.1f"|format(divergencia) }}%</span>
+                                            {% else %}<span class="divergence-badge divergence-badge--ok">0%</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if item.DIFERENCA_NUMERICA_CALC == 0 %}<span class="badge bg-success">OK</span>
+                                            {% elif item.DIFERENCA_NUMERICA_CALC > 0 %}<span class="badge bg-info">Sobra</span>
+                                            {% else %}<span class="badge bg-warning">Falta</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            {% if item.RECONTAGEM_COUNT > 0 %}
+                                                {% if item.RECONTAGEM_COUNT == 1 %}
+                                                    <span class="recontagem-verificado">1 vez</span>
+                                                {% else %}
+                                                    <span class="recontagem-verificado">{{ item.RECONTAGEM_COUNT }} vezes</span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="recontagem-count">{{ item.RECONTAGEM_COUNT or 0 }} vezes</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center"> {# Célula para exibir o status de Validado #}
+                                            {% if item.VALIDADO == 'Sim' %}
+                                                <span class="badge bg-success">Sim</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Não</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="bulk-actions-bottom">
+                        <h3 class="h6"><i class="fas fa-tasks me-2" aria-hidden="true"></i>Ações em Lote</h3>
+                        {# Formulário não é submetido diretamente, é usado para coletar dados #}
+                        <form id="bulkActionFormBottom" class="d-flex align-items-center gap-3 flex-wrap"> 
+                            <label class="form-check-label d-flex align-items-center me-3">
+                                <input type="checkbox" class="form-check-input" id="selectAllRecountBottom" style="transform: scale(1.2);">
+                                <span class="ms-2">Selecionar Todos para Recontagem</span>
+                            </label>
+                            <label class="form-check-label d-flex align-items-center me-3">
+                                <input type="checkbox" class="form-check-input" id="selectAllValidateBottom" style="transform: scale(1.2);">
+                                <span class="ms-2">Selecionar Todos para Validar</span>
+                            </label>
+                            {# Botão unificado #}
+                            <button type="button" class="btn btn-primary ms-2" id="executeBulkActionButtonBottom" disabled><i class="fas fa-play me-2" aria-hidden="true"></i>Executar Ações Selecionadas</button>
+                            <span class="text-muted ms-3" id="selectedRecountCountBottom" aria-live="polite">0 para Recontagem</span>
+                            <span class="text-muted ms-3" id="selectedValidateCountBottom" aria-live="polite">0 para Validar</span>
+                        </form>
+                    </div>
+                {% else %}
+                    <div class="text-center p-4 bg-light rounded">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3" aria-hidden="true"></i>
+                        <h3 class="mt-3">Nenhuma divergência encontrada</h3>
+                        <p class="text-muted">O fabricante "{{ fabricante_analisado_atual }}" não possui itens com divergências significativas acima de {{ percentual_referencia_aplicado }}%.</p>
+                        <p class="text-muted">Isso pode significar que todos os itens com divergências foram **ajustados ou recontados com sucesso**.</p>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="text-center p-4 bg-light rounded">
+                    <i class="fas fa-filter fa-3x text-muted mb-3" aria-hidden="true"></i>
+                    <h3 class="mt-3">Selecione um fabricante para análise</h3>
+                    <p class="text-muted">Use os filtros acima para iniciar a análise de divergências.</p>
+                </div>
+            {% endif %}
+        </section>
+    </main>
+    
+    <div class="modal fade" id="alertModal" tabindex="-1" aria-labelledby="alertModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="alertModalLabel"><i class="fas fa-exclamation-triangle me-2"></i>Atenção</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body" id="alertModalBody"></div><div class="modal-footer"><button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button></div></div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="confirmModalLabel"><i class="fas fa-question-circle me-2"></i>Confirmar Ação</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body" id="confirmModalBody"></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="button" id="confirmModalButton" class="btn btn-primary">Confirmar</button></div></div>
+        </div>
+    </div>
+
+
+    <footer class="container text-center py-4">
+        <p>
+            <a href="https://validator.w3.org/check?uri=referer" target="_blank" rel="noopener noreferrer" title="Validar HTML5">
+                <picture>
+                    <source srcset="https://placehold.co/63x64/f06529/ffffff/avif?text=HTML5" type="image/avif">
+                    <source srcset="https://placehold.co/63x64/f06529/ffffff/webp?text=HTML5" type="image/webp">
+                    <img src="https://www.w3.org/html/logo/badge/html5-badge-h-solo.png" width="63" height="64" alt="HTML Válido!">
+                </picture>
+            </a>
+            <a href="https://jigsaw.w3.org/css-validator/check/referer" target="_blank" rel="noopener noreferrer" title="Validar CSS3">
+                    <picture>
+                    <source srcset="https://placehold.co/88x31/2965f1/ffffff/avif?text=CSS3" type="image/avif">
+                    <source srcset="https://placehold.co/88x31/2965f1/ffffff/webp?text=CSS3" type="image/webp">
+                    <img style="border:0;width:88px;height:31px" src="https://jigsaw.w3.org/css-validator/images/vcss-blue" alt="CSS Válido!">
+                </picture>
+            </a>
+        </p>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js" defer></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js" defer></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js" defer></script>
+    <script>
+        // Use Sets para armazenar os IDs dos itens selecionados para cada tipo de ação
+        let selectedItemsRecount = new Set();
+        let selectedItemsValidate = new Set();
+        let dataTable; // Variável global para a instância do DataTable
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const alertModal = new bootstrap.Modal(document.getElementById('alertModal'));
+            const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+            let currentBulkActionConfirmed = false; // Flag para controlar se a ação em lote foi confirmada
+
+            // Elementos dos controles de seleção em massa (TOP)
+            const selectAllRecountCheckbox = document.getElementById('selectAllRecount');
+            const selectAllValidateCheckbox = document.getElementById('selectAllValidate');
+            const executeBulkActionButton = document.getElementById('executeBulkActionButton'); // Botão unificado
+            const selectedRecountCountSpan = document.getElementById('selectedRecountCount');
+            const selectedValidateCountSpan = document.getElementById('selectedValidateCount');
+
+            // Elementos dos controles de seleção em massa (BOTTOM)
+            const selectAllRecountBottomCheckbox = document.getElementById('selectAllRecountBottom');
+            const selectAllValidateBottomCheckbox = document.getElementById('selectAllValidateBottom');
+            const executeBulkActionButtonBottom = document.getElementById('executeBulkActionButtonBottom'); // Botão unificado
+            const selectedRecountCountBottomSpan = document.getElementById('selectedRecountCountBottom');
+            const selectedValidateCountBottomSpan = document.getElementById('selectedValidateCountBottom');
+
+
+            // Inicializa o DataTable sem paginação
+            if (document.getElementById('divergenceTable')) {
+                dataTable = $('#divergenceTable').DataTable({
+                    language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' },
+                    paging: false, // Remove a paginação completamente
+                    order: [[7, 'desc']],
+                    columnDefs: [
+                        { orderable: false, targets: [0] }, // Coluna 0 (checkboxes) não é ordenável
+                        { "className": "dt-center", "targets": "_all" }
+                    ],
+                    dom: 'frtip' // Remove o 'l' que é o length menu (controle de quantidade por página)
+                });
+
+                // Evento para quando a tabela é redesenhada (ordenação, filtro)
+                dataTable.on('draw.dt', function() {
+                    updateCheckboxesOnDraw();
+                    updateBulkActionsDisplay(); // Atualiza a contagem no display após o redesenho
+                });
+            }
+
+            // Funções de manipulação de seleção de checkboxes
+            function getItemKey(element) {
+                return `${element.dataset.codigo}|${element.dataset.lote}`;
+            }
+
+            function toggleItemSelection(checkbox, targetSet, otherCheckboxSelector, otherSet) {
+                const itemKey = getItemKey(checkbox);
+                const row = checkbox.closest('tr'); // Encontra a linha da tabela
+
+                if (checkbox.checked) {
+                    targetSet.add(itemKey);
+                    // Se este checkbox foi marcado, desmarque o outro checkbox na mesma linha
+                    const otherCheckbox = row.querySelector(otherCheckboxSelector);
+                    if (otherCheckbox && otherCheckbox.checked) {
+                        otherCheckbox.checked = false;
+                        otherSet.delete(getItemKey(otherCheckbox));
+                    }
+                } else {
+                    targetSet.delete(itemKey);
+                }
+                updateBulkActionsDisplay();
+                updateSelectAllCheckboxStates();
+            }
+
+
+            // Adiciona listeners para os checkboxes individuais de RECONTAGEM
+            $(document).on('change', '.item-checkbox-recount', function() {
+                toggleItemSelection(this, selectedItemsRecount, '.item-checkbox-validate', selectedItemsValidate);
+            });
+
+            // Adiciona listeners para os checkboxes individuais de VALIDAÇÃO
+            $(document).on('change', '.item-checkbox-validate', function() {
+                toggleItemSelection(this, selectedItemsValidate, '.item-checkbox-recount', selectedItemsRecount);
+            });
+
+
+            // Função para marcar/desmarcar TODOS os checkboxes VISÍVEIS de RECONTAGEM
+            function handleSelectAllRecount(isChecked) {
+                // Desmarcar "Selecionar Todos para Validar" se "Selecionar Todos para Recontagem" for marcado
+                if (isChecked && selectAllValidateCheckbox) {
+                    selectAllValidateCheckbox.checked = false;
+                    selectAllValidateCheckbox.indeterminate = false;
+                    handleSelectAllValidate(false); // Desmarca todos os itens de validação
+                }
+                if (isChecked && selectAllValidateBottomCheckbox) {
+                    selectAllValidateBottomCheckbox.checked = false;
+                    selectAllValidateBottomCheckbox.indeterminate = false;
+                    // handleSelectAllValidate(false); // Já foi chamado acima
+                }
+
+                // Seleciona apenas os checkboxes que estão VISÍVEIS (após filtragem/pesquisa do DataTables)
+                dataTable.rows({ search: 'applied' }).nodes().to$().find('.item-checkbox-recount').each(function() {
+                    this.checked = isChecked;
+                    // Ao marcar para recontagem, desmarcar validação no mesmo item
+                    const itemKey = getItemKey(this);
+                    const validateCheckbox = this.closest('tr').querySelector('.item-checkbox-validate');
+                    if (validateCheckbox) {
+                        validateCheckbox.checked = false;
+                        selectedItemsValidate.delete(itemKey);
+                    }
+                    toggleItemSelection(this, selectedItemsRecount, null, null); // Nulos para evitar loop ou desnecessário
+                });
+                if (selectAllRecountBottomCheckbox) {
+                    selectAllRecountBottomCheckbox.checked = isChecked;
+                    selectAllRecountBottomCheckbox.indeterminate = false;
+                }
+            }
+            if (selectAllRecountCheckbox) {
+                selectAllRecountCheckbox.addEventListener('change', function() {
+                    handleSelectAllRecount(this.checked);
+                });
+            }
+            if (selectAllRecountBottomCheckbox) {
+                selectAllRecountBottomCheckbox.addEventListener('change', function() {
+                    handleSelectAllRecount(this.checked);
+                });
+            }
+
+            // Função para marcar/desmarcar TODOS os checkboxes VISÍVEIS de VALIDAÇÃO
+            function handleSelectAllValidate(isChecked) {
+                // Desmarcar "Selecionar Todos para Recontagem" se "Selecionar Todos para Validar" for marcado
+                if (isChecked && selectAllRecountCheckbox) {
+                    selectAllRecountCheckbox.checked = false;
+                    selectAllRecountCheckbox.indeterminate = false;
+                    handleSelectAllRecount(false); // Desmarca todos os itens de recontagem
+                }
+                if (isChecked && selectAllRecountBottomCheckbox) {
+                    selectAllRecountBottomCheckbox.checked = false;
+                    selectAllRecountBottomCheckbox.indeterminate = false;
+                    // handleSelectAllRecount(false); // Já foi chamado acima
+                }
+
+                // Seleciona apenas os checkboxes que estão VISÍVEIS (após filtragem/pesquisa do DataTables)
+                dataTable.rows({ search: 'applied' }).nodes().to$().find('.item-checkbox-validate').each(function() {
+                    this.checked = isChecked;
+                    // Ao marcar para validação, desmarcar recontagem no mesmo item
+                    const itemKey = getItemKey(this);
+                    const recountCheckbox = this.closest('tr').querySelector('.item-checkbox-recount');
+                    if (recountCheckbox) {
+                        recountCheckbox.checked = false;
+                        selectedItemsRecount.delete(itemKey);
+                    }
+                    toggleItemSelection(this, selectedItemsValidate, null, null); // Nulos para evitar loop ou desnecessário
+                });
+                if (selectAllValidateBottomCheckbox) {
+                    selectAllValidateBottomCheckbox.checked = isChecked;
+                    selectAllValidateBottomCheckbox.indeterminate = false;
+                }
+            }
+            if (selectAllValidateCheckbox) {
+                selectAllValidateCheckbox.addEventListener('change', function() {
+                    handleSelectAllValidate(this.checked);
+                });
+            }
+            if (selectAllValidateBottomCheckbox) {
+                selectAllValidateBottomCheckbox.addEventListener('change', function() {
+                    handleSelectAllValidate(this.checked);
+                });
+            }
+
+            // Atualiza o estado dos checkboxes individuais ao redesenhar a tabela
+            function updateCheckboxesOnDraw() {
+                document.querySelectorAll('.item-checkbox-recount').forEach(function(checkbox) {
+                    const itemKey = getItemKey(checkbox);
+                    // Assegura que o checkbox de recontagem não está marcado se o de validação estiver selecionado para o mesmo item
+                    if (selectedItemsValidate.has(itemKey)) {
+                        checkbox.checked = false;
+                        selectedItemsRecount.delete(itemKey); // Garante que não está no conjunto de recontagem
+                    } else {
+                        checkbox.checked = selectedItemsRecount.has(itemKey);
+                    }
+                });
+                document.querySelectorAll('.item-checkbox-validate').forEach(function(checkbox) {
+                    const itemKey = getItemKey(checkbox);
+                    // Assegura que o checkbox de validação não está marcado se o de recontagem estiver selecionado para o mesmo item
+                    if (selectedItemsRecount.has(itemKey)) {
+                        checkbox.checked = false;
+                        selectedItemsValidate.delete(itemKey); // Garante que não está no conjunto de validação
+                    } else {
+                        checkbox.checked = selectedItemsValidate.has(itemKey);
+                    }
+                });
+            }
+            
+            // Atualiza o estado dos checkboxes "Selecionar Todos" (topo e rodapé) para Recontagem e Validação
+            function updateSelectAllCheckboxStates() {
+                // Contar apenas os checkboxes VISÍVEIS na tabela
+                const allVisibleRecountCheckboxes = dataTable.rows({ search: 'applied' }).nodes().to$().find('.item-checkbox-recount');
+                const checkedVisibleRecountCheckboxes = allVisibleRecountCheckboxes.filter(':checked');
+
+                const allVisibleValidateCheckboxes = dataTable.rows({ search: 'applied' }).nodes().to$().find('.item-checkbox-validate');
+                const checkedVisibleValidateCheckboxes = allVisibleValidateCheckboxes.filter(':checked');
+
+                function updateSingleSelectAll(allCbs, checkedCbs, topCb, bottomCb) {
+                    let state = { checked: false, indeterminate: false };
+                    if (allCbs.length > 0 && allCbs.length === checkedCbs.length) {
+                        state.checked = true;
+                    } else if (checkedCbs.length > 0) {
+                        state.indeterminate = true;
+                    }
+
+                    if (topCb) {
+                        topCb.checked = state.checked;
+                        topCb.indeterminate = state.indeterminate;
+                    }
+                    if (bottomCb) {
+                        bottomCb.checked = state.checked;
+                        bottomCb.indeterminate = state.indeterminate;
+                    }
+                }
+                
+                updateSingleSelectAll(allVisibleRecountCheckboxes, checkedVisibleRecountCheckboxes, selectAllRecountCheckbox, selectAllRecountBottomCheckbox);
+                updateSingleSelectAll(allVisibleValidateCheckboxes, checkedVisibleValidateCheckboxes, selectAllValidateCheckbox, selectAllValidateBottomCheckbox);
+            }
+            
+            // Função para atualizar a contagem exibida e o estado do botão unificado
+            function updateBulkActionsDisplay() {
+                selectedRecountCountSpan.textContent = `${selectedItemsRecount.size} para Recontagem`;
+                selectedValidateCountSpan.textContent = `${selectedItemsValidate.size} para Validar`;
+                selectedRecountCountBottomSpan.textContent = `${selectedItemsRecount.size} para Recontagem`;
+                selectedValidateCountBottomSpan.textContent = `${selectedItemsValidate.size} para Validar`;
+
+                // O botão unificado é habilitado se QUALQUER item for selecionado para QUALQUER ação.
+                const isDisabled = (selectedItemsRecount.size === 0 && selectedItemsValidate.size === 0);
+                
+                executeBulkActionButton.disabled = isDisabled;
+                executeBulkActionButtonBottom.disabled = isDisabled;
+
+                executeBulkActionButton.classList.toggle('pulse', !isDisabled);
+                executeBulkActionButtonBottom.classList.toggle('pulse', !isDisabled);
+            }
+
+            // Função para iniciar o processamento das ações em lote
+            function processBulkActions() {
+                // Confirmação via modal
+                let confirmationMessages = [];
+                if (selectedItemsRecount.size > 0) {
+                    confirmationMessages.push(`${selectedItemsRecount.size} item(s) para recontagem`);
+                }
+                if (selectedItemsValidate.size > 0) {
+                    confirmationMessages.push(`${selectedItemsValidate.size} item(s) para validar`);
+                }
+
+                if (confirmationMessages.length === 0) {
+                    document.getElementById('alertModalBody').textContent = 'Selecione pelo menos um item para executar as ações.';
+                    alertModal.show();
+                    return;
+                }
+
+                document.getElementById('confirmModalBody').textContent = `Confirma as seguintes ações: ${confirmationMessages.join(' e ')}?`;
+                confirmModal.show();
+                currentBulkActionConfirmed = true; // Marca que a ação em lote foi iniciada
+            }
+
+            // Listener para o botão unificado (TOP)
+            if (executeBulkActionButton) {
+                executeBulkActionButton.addEventListener('click', processBulkActions);
+            }
+
+            // Listener para o botão unificado (BOTTOM)
+            if (executeBulkActionButtonBottom) {
+                executeBulkActionButtonBottom.addEventListener('click', processBulkActions);
+            }
+
+            // Validação do formulário de análise de fabricante
+            document.getElementById('analysisForm')?.addEventListener('submit', function(e) {
+                if (!document.getElementById('fabricante_analisado').value) {
+                    e.preventDefault();
+                    document.getElementById('alertModalBody').textContent = 'Selecione um fabricante para análise.';
+                    alertModal.show();
+                }
+            });
+
+            // Ação do botão de confirmação do modal
+            document.getElementById('confirmModalButton').addEventListener('click', function() {
+                confirmModal.hide(); // Esconde o modal imediatamente
+                
+                if (!currentBulkActionConfirmed) {
+                    // Esta situação não deveria ocorrer com a lógica atual, mas é uma salvaguarda.
+                    console.error("Ação de lote não foi iniciada antes da confirmação do modal.");
+                    return;
+                }
+
+                const fabricanteAnalise = document.querySelector('[name="fabricante_analisado"]').value;
+                const percentualDivergencia = document.querySelector('[name="percentual_referencia"]').value;
+
+                // Criar um único formulário temporário para enviar todos os dados
+                let finalBulkForm = document.createElement('form');
+                finalBulkForm.method = 'POST';
+                finalBulkForm.action = '/processar_acoes_em_lote'; // Aponta para a nova rota unificada
+                finalBulkForm.style.display = 'none';
+
+                // Adicionar os campos hidden de contexto
+                finalBulkForm.appendChild(createHiddenInput('fabricante_analisado_hidden_form', fabricanteAnalise));
+                finalBulkForm.appendChild(createHiddenInput('percentual_divergencia_hidden_form', percentualDivergencia));
+
+                // Adicionar itens selecionados para recontagem
+                Array.from(selectedItemsRecount).forEach(itemKey => {
+                    finalBulkForm.appendChild(createHiddenInput('selected_for_recount', itemKey));
+                });
+
+                // Adicionar itens selecionados para validação
+                Array.from(selectedItemsValidate).forEach(itemKey => {
+                    finalBulkForm.appendChild(createHiddenInput('selected_for_validate', itemKey));
+                });
+                
+                // NOTA: Para a ação de "invalidar", você precisaria de uma forma de saber quais itens
+                // que ANTES estavam validados ('Sim') AGORA estão desmarcados.
+                // Isso requereria armazenar o estado original dos checkboxes de validação e comparar.
+                // Por enquanto, o botão 'Invalidar' não está mais presente na UI.
+                // Se a funcionalidade "Invalidar" é necessária para itens que já são 'Sim' e o usuário desmarca,
+                // teríamos que ajustar a lógica do `selectedItemsValidate` ou adicionar um `selectedItemsInvalidate`
+                // que rastrearia especificamente os que foram explicitamente marcados para "Não".
+                // Dada a sua solicitação de unificar em 1 botão, e a remoção dos botões de invalidar,
+                // vamos tratar apenas o `selected_for_validate` como 'Sim'.
+                // Se desejar adicionar a funcionalidade "Invalidar" de volta de forma inteligente,
+                // precisaremos de um passo extra de lógica no JS.
+
+                document.body.appendChild(finalBulkForm);
+                finalBulkForm.submit();
+
+                // Resetar estado
+                selectedItemsRecount.clear();
+                selectedItemsValidate.clear();
+                currentBulkActionConfirmed = false;
+                updateBulkActionsDisplay();
+                updateSelectAllCheckboxStates();
+            });
+
+            // Helper para criar input hidden
+            function createHiddenInput(name, value) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = name;
+                input.value = value;
+                return input;
+            }
+
+            // Inicializa o estado dos checkboxes e display ao carregar a página
+            updateCheckboxesOnDraw(); // Chame esta função ao carregar para refletir o estado inicial do "Validado"
+            updateBulkActionsDisplay();
+            updateSelectAllCheckboxStates();
+        });
+    </script>
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => console.log('Service Worker registrado:', registration.scope))
+                    .catch(error => console.log('Falha ao registrar Service Worker:', error));
+            });
+        }
+    </script>
+
+    <script type="module">
+        import { onCLS, onFID, onLCP } from 'https://unpkg.com/web-vitals@3/dist/web-vitals.attribution.js?module';
+        onCLS(console.log);
+        onFID(console.log);
+        onLCP(console.log);
+    </script>
+</body>
+</html>

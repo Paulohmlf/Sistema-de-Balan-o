@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Inventário - Login</title>
+    
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#667eea">
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 2rem;
+        }
+        main.container {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+        }
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            padding: 2.5rem;
+            max-width: 450px;
+            width: 100%;
+        }
+        .login-card__header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        .login-card__header-title {
+            color: #333;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            font-size: 2rem;
+        }
+        .login-card__header-subtitle {
+            color: #666;
+            font-size: 1rem;
+            margin-bottom: 0;
+        }
+        .login-card__form .form-floating {
+            margin-bottom: 1.5rem;
+        }
+        .login-card__form .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .password-field {
+            position: relative;
+        }
+        .password-field__toggle {
+            position: absolute;
+            top: 50%;
+            right: 0;
+            transform: translateY(-50%);
+            margin-right: 1rem;
+            cursor: pointer;
+            color: #666;
+            transition: color 0.3s ease;
+            z-index: 10;
+        }
+        .password-field__toggle:hover, .password-field__toggle:focus {
+            color: #667eea;
+            outline: none;
+        }
+        .login-card__submit-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 12px;
+            padding: 0.875rem 2rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        .login-card__submit-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        .info-card {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            border-left: 4px solid #667eea;
+        }
+        .info-card__title {
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .info-card p {
+            margin-bottom: 0;
+        }
+        .alert { border-radius: 12px; border: none; margin-bottom: 1.5rem; color: white; }
+        .alert-success { background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%); }
+        .alert-danger { background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%); }
+        .alert-warning { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+        .alert-info { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        footer { padding-top: 1.5rem; opacity: 0.8; }
+        @media (max-width: 576px) {
+            body { display: block; }
+            .login-card { margin: 1rem; padding: 2rem 1.5rem; }
+            .login-card__header-title { font-size: 1.75rem; }
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <div class="login-card">
+            <header class="login-card__header">
+                <i class="fas fa-clipboard-list fa-3x text-primary mb-3" aria-hidden="true"></i>
+                <h1 class="login-card__header-title">Sistema de Inventário</h1>
+                <p class="login-card__header-subtitle">Faça login para acessar o sistema</p>
+            </header>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            <i class="fas fa-{{ 'exclamation-triangle' if category == 'warning' else 'info-circle' if category == 'info' else 'check-circle' if category == 'success' else 'times-circle' }} me-2" aria-hidden="true"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Fechar"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('auth.login') }}" id="loginForm" class="login-card__form">
+                <div class="form-floating mb-3">
+                    <input type="text" class="form-control" id="username" name="username" placeholder="Digite seu usuário" required autocomplete="username">
+                    <label for="username">
+                        <i class="fas fa-user me-2" aria-hidden="true"></i>Usuário
+                    </label>
+                </div>
+
+                <div class="form-floating mb-4 password-field">
+                    <input type="password" class="form-control" id="password" name="password" placeholder="Digite sua senha" required autocomplete="current-password">
+                    <label for="password">
+                        <i class="fas fa-lock me-2" aria-hidden="true"></i>Senha
+                    </label>
+                    <span class="password-field__toggle" role="button" tabindex="0" aria-label="Mostrar ou ocultar a senha">
+                        <i class="fas fa-eye" id="toggleIcon" aria-hidden="true"></i>
+                    </span>
+                </div>
+
+                <button type="submit" class="btn btn-primary login-card__submit-button">
+                    <i class="fas fa-sign-in-alt me-2" aria-hidden="true"></i>Entrar
+                </button>
+            </form>
+
+            <div class="text-center mt-4">
+                <p>Não tem uma conta? <a href="{{ url_for('auth.cadastro') }}">Cadastre-se aqui</a></p>
+            </div>
+
+            <section class="info-card">
+                <h5 class="info-card__title"><i class="fas fa-info-circle me-2" aria-hidden="true"></i>Como acessar:</h5>
+                <p>
+                    <i class="fas fa-user-check me-2 text-primary"></i>
+                    Digite seu usuário e senha. Se não tiver uma conta, clique no link acima para se cadastrar.
+                </p>
+            </section>
+        </div>
+    </main>
+
+    <footer class="text-center text-white">
+        <p>
+            <a href="https://validator.w3.org/check?uri=referer" target="_blank" rel="noopener noreferrer" title="Validar HTML5">
+                <img src="https://www.w3.org/html/logo/badge/html5-badge-h-solo.png" width="63" height="64" alt="HTML Válido!" 
+                     onerror="this.onerror=null; this.src='https://placehold.co/63x64/f06529/ffffff?text=HTML5'">
+            </a>
+            <a href="https://jigsaw.w3.org/css-validator/check/referer" target="_blank" rel="noopener noreferrer" title="Validar CSS3">
+                 <img style="border:0;width:88px;height:31px" src="https://jigsaw.w3.org/css-validator/images/vcss-blue" alt="CSS Válido!"
+                      onerror="this.onerror=null; this.src='https://placehold.co/88x31/2965f1/ffffff?text=CSS3'">
+            </a>
+        </p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const passwordField = document.getElementById('password');
+            const toggleIcon = document.getElementById('toggleIcon');
+            const toggleButton = document.querySelector('.password-field__toggle');
+            const usernameField = document.getElementById('username');
+
+            function togglePasswordVisibility() {
+                if (passwordField.type === 'password') {
+                    passwordField.type = 'text';
+                    toggleIcon.classList.replace('fa-eye', 'fa-eye-slash');
+                } else {
+                    passwordField.type = 'password';
+                    toggleIcon.classList.replace('fa-eye-slash', 'fa-eye');
+                }
+            }
+
+            if (toggleButton) {
+                toggleButton.addEventListener('click', togglePasswordVisibility);
+                toggleButton.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        togglePasswordVisibility();
+                    }
+                });
+            }
+
+            if(usernameField) {
+                 usernameField.focus();
+            }
+
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                new bootstrap.Alert(alert); // Inicializa o alerta para o JS do Bootstrap
+                setTimeout(() => {
+                    const bsAlert = bootstrap.Alert.getInstance(alert);
+                    if (bsAlert) {
+                        bsAlert.close();
+                    }
+                }, 5000); 
+            });
+        });
+    </script>
+</body>
+</html>

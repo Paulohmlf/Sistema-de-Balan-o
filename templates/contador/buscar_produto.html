@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscar Produto - Sistema de Inventário Otimizado</title>
+    
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#667eea">
+
+    <style>
+        :root {
+            --primary-color: #ca8a04;      
+            --secondary-color: #c2410c;    
+            --success-color: #166534;      
+            --warning-color: #ea580c;      
+            --danger-color: #be185d;       
+            --info-color: #0e7490;         
+
+            --main-bg: #fefce8;            
+            --main-gradient: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            --border-radius: 12px;
+        }
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .page-nav {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            box-shadow: var(--card-shadow);
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+        }
+        .page-nav__brand { font-weight: 700; font-size: 1.5rem; }
+        .page-nav__user-info {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            padding: 0.5rem 1rem;
+            margin-right: 1rem;
+        }
+        .main-container { padding: 2rem 0; }
+        .search-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+        }
+        .search-card__title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .search-card__title i {
+            color: var(--primary-color);
+        }
+        .form-control {
+            border-radius: 25px;
+            padding: 0.75rem 1.25rem;
+            border: 1px solid #ced4da;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(var(--primary-color-rgb), .25);
+        }
+        .btn-search {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border-radius: 25px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .btn-search:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+            color: white;
+        }
+        .results-section__title {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .results-section__title i {
+            color: var(--primary-color);
+        }
+        .product-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s ease;
+            border-left: 5px solid var(--info-color);
+        }
+        .product-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        .product-card__header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .product-card__title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        .product-card__info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .product-card__info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .product-card__info-item i {
+            color: var(--primary-color);
+            width: 16px;
+        }
+        .no-results {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark page-nav">
+        <div class="container">
+            <a class="navbar-brand page-nav__brand" href="{{ url_for('contador.dashboard') }}">
+                <i class="fas fa-clipboard-list me-2" aria-hidden="true"></i>Sistema de Inventário
+            </a>
+            <div class="d-flex align-items-center">
+                <div class="page-nav__user-info">
+                    <i class="fas fa-user me-2" aria-hidden="true"></i>
+                    <span>{{ session.user_full_name }}</span>
+                </div>
+                <a href="{{ url_for('contador.dashboard') }}" class="btn btn-outline-light btn-sm me-2">
+                    <i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Voltar ao Painel
+                </a>
+                <a href="/logout" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-sign-out-alt me-1" aria-hidden="true"></i>Sair
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container main-container">
+        <section class="search-card">
+            <h1 class="search-card__title">
+                <i class="fas fa-search" aria-hidden="true"></i>Buscar Produtos
+            </h1>
+            <form action="{{ url_for('contador.buscar_produto') }}" method="GET" class="mb-4">
+                <div class="input-group">
+                    <input type="text" class="form-control" name="q" placeholder="Digite o nome ou código do produto..." value="{{ query }}" aria-label="Pesquisar produto">
+                    <button class="btn btn-search" type="submit">
+                        <i class="fas fa-search me-2" aria-hidden="true"></i>Buscar
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <section aria-labelledby="results-section-title">
+            <h2 class="results-section__title" id="results-section-title">
+                <i class="fas fa-box-open" aria-hidden="true"></i>Resultados da Busca
+            </h2>
+
+            {% if resultados %}
+                <div class="row">
+                    {% for item in resultados %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <article class="product-card">
+                                <header class="product-card__header">
+                                    <h5 class="product-card__title">{{ item.PRODUTO }}</h5>
+                                    <span class="badge bg-info text-dark">
+                                        {{ item.STATUS if item.STATUS else 'N/A' }}
+                                    </span>
+                                </header>
+                                <div class="product-card__info-grid">
+                                    <div class="product-card__info-item">
+                                        <i class="fas fa-barcode" aria-hidden="true"></i>
+                                        <span><strong>Código:</strong> {{ item.CÓDIGO }}</span>
+                                    </div>
+                                    <div class="product-card__info-item">
+                                        <i class="fas fa-tag" aria-hidden="true"></i>
+                                        <span><strong>Lote:</strong> {{ item.LOTE if item.LOTE and item.LOTE != 'nan' else 'N/A' }}</span>
+                                    </div>
+                                    <div class="product-card__info-item">
+                                        <i class="fas fa-industry" aria-hidden="true"></i>
+                                        <span><strong>Fabricante:</strong> {{ item.FABRICANTE if item.FABRICANTE else 'N/A' }}</span>
+                                    </div>
+                                    <div class="product-card__info-item">
+                                        <i class="fas fa-user-check" aria-hidden="true"></i>
+                                        <span><strong>Contador:</strong> {{ item.CONTADOR if item.CONTADOR else 'N/A' }}</span>
+                                    </div>
+                                </div>
+                                {% if item.CONFERENCIA %}
+                                    <div class="alert alert-light mt-3 p-2 small">
+                                        <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+                                        {{ item.CONFERENCIA }}
+                                    </div>
+                                {% endif %}
+                            </article>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                {% if query %}
+                    <div class="no-results p-4">
+                        <i class="fas fa-frown fa-3x mb-3" aria-hidden="true"></i>
+                        <p class="mb-0">Nenhum produto encontrado para "{{ query }}". Tente outro termo de busca.</p>
+                    </div>
+                {% else %}
+                    <div class="text-center p-5 bg-light rounded">
+                        <i class="fas fa-search fa-4x text-muted mb-3" aria-hidden="true"></i>
+                        <h3>Comece sua busca</h3>
+                        <p class="text-muted">Utilize a barra de pesquisa acima para encontrar produtos por nome ou código.</p>
+                    </div>
+                {% endif %}
+            {% endif %}
+        </section>
+    </main>
+
+    <aside style="position: fixed; bottom: 2rem; right: 2rem; z-index: 1000;">
+        <button class="btn btn-primary rounded-circle" onclick="window.location.reload()" title="Atualizar página" aria-label="Atualizar página" style="width: 60px; height: 60px; font-size: 1.5rem;">
+            <i class="fas fa-sync-alt" aria-hidden="true"></i>
+        </button>
+    </aside>
+
+    <footer class="container text-center py-4">
+        <p>
+            <a href="https://validator.w3.org/check?uri=referer" target="_blank" rel="noopener noreferrer" title="Validar HTML5">
+                <picture>
+                    <source srcset="https://placehold.co/63x64/f06529/ffffff/avif?text=HTML5" type="image/avif">
+                    <source srcset="https://placehold.co/63x64/f06529/ffffff/webp?text=HTML5" type="image/webp">
+                    <img src="https://www.w3.org/html/logo/badge/html5-badge-h-solo.png" width="63" height="64" alt="HTML Válido!">
+                </picture>
+            </a>
+            <a href="https://jigsaw.w3.org/css-validator/check/referer" target="_blank" rel="noopener noreferrer" title="Validar CSS3">
+                 <picture>
+                    <source srcset="https://placehold.co/88x31/2965f1/ffffff/avif?text=CSS3" type="image/avif">
+                    <source srcset="https://placehold.co/88x31/2965f1/ffffff/webp?text=CSS3" type="image/webp">
+                    <img style="border:0;width:88px;height:31px" src="https://jigsaw.w3.org/css-validator/images/vcss-blue" alt="CSS Válido!">
+                </picture>
+            </a>
+        </p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => window.location.reload(), 300000);
+        });
+    </script>
+    <script type="module">
+        import { onCLS, onFID, onLCP } from 'https://unpkg.com/web-vitals@3/dist/web-vitals.attribution.js?module';
+        onCLS(console.log);
+        onFID(console.log);
+        onLCP(console.log);
+    </script>
+</body>
+</html>

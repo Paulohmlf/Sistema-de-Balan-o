@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contagem Depósito - Sistema de Inventário Otimizado</title>
+
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3498db">
+
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            --border-radius: 12px;
+            --deposito-color: #3498db;
+            --deposito-light: #d6eaf8;
+        }
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .page-nav {
+            background: linear-gradient(135deg, var(--deposito-color) 0%, #2980b9 100%);
+            box-shadow: var(--card-shadow);
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+        }
+        .page-nav__brand { font-weight: 700; font-size: 1.5rem; }
+        .main-container { padding: 2rem 0; }
+        .page-header {
+            background: linear-gradient(135deg, var(--deposito-color) 0%, #2980b9 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+        }
+        .page-header__title { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .page-header__subtitle { font-size: 1.2rem; opacity: 0.9; margin-bottom: 0; }
+        .progress-tracker {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+        }
+        .progress-tracker__bar-wrapper { height: 12px; border-radius: 10px; background-color: #e9ecef; }
+        .progress-tracker__bar { background: linear-gradient(90deg, var(--deposito-color) 0%, #2980b9 100%); border-radius: 10px; }
+        .product-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--card-shadow);
+            border-left: 4px solid var(--deposito-color);
+            transition: all 0.3s ease;
+        }
+        .product-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); }
+        .product-card__header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
+        .product-card__name { font-weight: 600; font-size: 1.1rem; color: #333; margin-bottom: 0.5rem; }
+        .product-card__info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+        .product-card__info-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: #666; }
+        .product-card__info-item i { color: var(--deposito-color); width: 16px; }
+        .product-card__input-group { position: relative; }
+        .product-card__input { border-radius: var(--border-radius); padding: 0.875rem 1rem; font-size: 1.1rem; font-weight: 600; }
+        .lote-badge { background: var(--deposito-light); color: var(--deposito-color); padding: 0.25rem 0.75rem; border-radius: 15px; font-size: 0.8rem; font-weight: 600; }
+        .lote-badge--no-lote { background: #e9ecef; color: #6c757d; }
+        .action-bar {
+            position: sticky;
+            bottom: 2rem;
+            background: white;
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            margin-top: 2rem;
+            border-top: 3px solid var(--deposito-color);
+        }
+        .floating-help { position: fixed; bottom: 2rem; right: 2rem; z-index: 1000; }
+        .floating-help__button {
+            width: 60px; height: 60px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--info-color) 0%, #138496 100%);
+            color: white; border: none; font-size: 1.5rem;
+            box-shadow: 0 8px 25px rgba(23, 162, 184, 0.4);
+            transition: all 0.3s ease;
+        }
+        .floating-help__button:hover { transform: scale(1.1); box-shadow: 0 12px 35px rgba(23, 162, 184, 0.6); }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(52, 152, 219, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(52, 152, 219, 0); }
+        }
+        .save-indicator {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        /* Novos estilos para o status do lote (copiados de contar_balcao.html) */
+        .produto-card {
+            /* Os estilos gerais para .product-card já são aplicados, este é apenas um wrapper conceitual */
+        }
+        .produto-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem; /* Espaçamento entre o cabeçalho e os campos de input */
+            flex-wrap: wrap; /* Permite que os itens quebrem a linha em telas menores */
+        }
+        .produto-header h3 {
+            margin-bottom: 0;
+            font-size: 1.2rem; /* Ajuste para caber melhor */
+            color: #333;
+        }
+        .status-container {
+            flex-shrink: 0; /* Evita que o container do status encolha */
+            margin-left: auto; /* Empurra o status para a direita */
+        }
+        .status-badge {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-weight: 700;
+            text-transform: uppercase;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .status-controlado {
+            background-color: #d4edda; /* Light green */
+            color: #155724; /* Dark green */
+            border: 1px solid #c3e6cb;
+        }
+        .status-livre {
+            background-color: #fff3cd; /* Light yellow */
+            color: #856404; /* Dark yellow */
+            border: 1px solid #ffeeba;
+        }
+        .status-icon {
+            font-size: 1.5rem;
+            margin-right: 0.5rem;
+        }
+        .status-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+        }
+        .status-text strong {
+            font-size: 0.9rem;
+        }
+        .status-text small {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+        @media (max-width: 768px) {
+            .main-container { padding: 1rem; }
+            .page-header__title { font-size: 2rem; }
+            .product-card__info-grid { grid-template-columns: 1fr; }
+            .action-bar { position: static; margin-top: 1rem; }
+            /* Ajustes para dispositivos móveis para o header do produto */
+            .produto-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .status-container {
+                margin-left: 0;
+                margin-top: 1rem; /* Espaçamento entre o título e o badge em telas pequenas */
+            }
+        }
+
+        /* Regras de Estilo para Loading Overlay e Mensagens de Erro */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none; /* Inicialmente oculto */
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            color: white;
+            font-size: 2rem;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark page-nav">
+        <div class="container">
+            <a class="navbar-brand page-nav__brand" href="/contador/dashboard"><i class="fas fa-warehouse me-2" aria-hidden="true"></i>Contagem Depósito</a>
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3"><i class="fas fa-user me-1" aria-hidden="true"></i>{{ session.user_full_name }}</span>
+                <button type="button" class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#confirmCancelModal"><i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Voltar</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container main-container">
+        <header class="page-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="page-header__title"><i class="fas fa-warehouse me-3" aria-hidden="true"></i>Contagem do Depósito</h1>
+                    <p class="page-header__subtitle">Fabricante: <strong>{{ fabricante }}</strong></p>
+                </div>
+                <div class="col-md-4 text-end"><i class="fas fa-boxes" style="font-size: 4rem; opacity: 0.3;" aria-hidden="true"></i></div>
+            </div>
+        </header>
+
+        <section class="progress-tracker">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0"><i class="fas fa-tasks me-2" aria-hidden="true"></i>Progresso da Contagem</h6>
+                <span class="badge bg-primary" id="progress-text" aria-live="polite">0 de {{ produtos|length }} produtos</span>
+            </div>
+            <div class="progress progress-tracker__bar-wrapper">
+                <div class="progress-bar progress-tracker__bar" role="progressbar" id="progress-bar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+        </section>
+
+        <form method="POST" action="/contador/salvar_deposito" id="contagemForm">
+            <input type="hidden" name="fabricante" value="{{ fabricante }}">
+            
+            {% if produtos %}
+                {% for produto in produtos %}
+                    <article class="product-card" data-produto-index="{{ loop.index0 }}">
+                        <header class="product-card__header">
+                            <h5 class="product-card__name"><i class="fas fa-box me-2" aria-hidden="true"></i>{{ produto.PRODUTO }}</h5>
+                        </header>
+                        
+                        <div class="produto-card">
+                            <div class="produto-header">
+                                <h3>Código: {{ produto.CÓDIGO }}</h3>
+                                
+                                <div class="status-container">
+                                    {% if produto.CONTROLE_LOTE == 'S' %}
+                                        <div class="status-badge status-controlado">
+                                            <div class="status-icon">✅</div>
+                                            <div class="status-text">
+                                                <strong>CONTROLE ATIVO</strong>
+                                                <small>Lote: {{ produto.LOTE if produto.LOTE and produto.LOTE != 'N/A' else 'NÃO INFORMADO' }}</small>
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <div class="status-badge status-livre">
+                                            <div class="status-icon">⚠️</div>
+                                            <div class="status-text">
+                                                <strong>SEM CONTROLE</strong>
+                                                <small>Produto livre</small>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="input-group product-card__input-group">
+                            <label for="deposito-{{ loop.index0 }}" class="input-group-text"><i class="fas fa-warehouse me-2" aria-hidden="true"></i>Depósito</label>
+                            <input type="number" class="form-control product-card__input" id="deposito-{{ loop.index0 }}" name="deposito_{{ produto.CÓDIGO }}|{{ produto.LOTE or '' }}" placeholder="Digite a quantidade" min="0" step="1" autocomplete="off" value="{{ produto.ESTOQUE_DEPOSITO if produto.ESTOQUE_DEPOSITO is not none else '' }}" data-codigo="{{ produto.CÓDIGO }}" data-lote="{{ produto.LOTE or '' }}" data-tipo-estoque="ESTOQUE_DEPOSITO">
+                            <span class="save-indicator" role="status" aria-live="polite"></span>
+                        </div>
+                    </article>
+                {% endfor %}
+            {% else %}
+                <div class="text-center p-5 bg-light rounded">
+                    <i class="fas fa-box-open fa-4x text-muted mb-3" aria-hidden="true"></i>
+                    <h3>Nenhum produto encontrado</h3>
+                    <p class="text-muted">Não há produtos para contagem neste fabricante.</p>
+                </div>
+            {% endif %}
+
+            {% if produtos %}
+                <div class="action-bar">
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <button type="submit" class="btn btn-primary w-100" id="btnSalvar"><i class="fas fa-check me-2" aria-hidden="true"></i>Finalizar e Salvar Tudo</button>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <button type="button" class="btn btn-secondary w-100" data-bs-toggle="modal" data-bs-target="#confirmCancelModal"><i class="fas fa-times me-2" aria-hidden="true"></i>Cancelar e Voltar</button>
+                        </div>
+                        <div class="col-md-12 mb-2">
+                            <button type="button" class="btn btn-success w-100" data-bs-toggle="modal" data-bs-target="#adicionarLoteModal">
+                                <i class="fas fa-plus me-2" aria-hidden="true"></i>
+                                Adicionar Novo Lote
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </form>
+    </main>
+
+    <div class="loading-overlay" id="loadingOverlay" role="dialog" aria-labelledby="loadingText" aria-modal="true">
+        <div class="text-center">
+            <i class="fas fa-spinner fa-spin loading-spinner" aria-hidden="true"></i>
+            <div class="text-white mt-2" id="loadingText">Salvando...</div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="adicionarLoteModal" tabindex="-1" aria-labelledby="adicionarLoteModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="adicionarLoteModalLabel">
+                        <i class="fas fa-plus me-2"></i>
+                        Adicionar Novo Lote - {{ fabricante }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="modalErrorMessage" class="alert alert-danger d-none" role="alert"></div>
+                    
+                    <form id="formAdicionarLote" novalidate>
+                        <input type="hidden" name="fabricante" value="{{ fabricante }}">
+                        
+                        <fieldset class="mb-4">
+                            <legend class="h6 mb-3">
+                                <i class="fas fa-box-open me-2"></i>
+                                1. Selecione o Produto
+                            </legend>
+                            <div class="d-flex align-items-center">
+                                <select class="form-select" id="produtoSelectModal" name="produto_codigo" required aria-describedby="produtoSelectHelp">
+                                    <option value="" selected disabled>-- Carregando produtos... --</option>
+                                </select>
+                                <div id="loadingSpinnerModal" class="spinner-border ms-2" role="status" style="display: none; width: 1.5rem; height: 1.5rem;">
+                                    <span class="visually-hidden">Carregando...</span>
+                                </div>
+                            </div>
+                            <div class="invalid-feedback">Por favor, selecione um produto.</div>
+                            <div id="produtoSelectHelp" class="form-text">Escolha o produto para adicionar um novo lote.</div>
+                        </fieldset>
+
+                        <fieldset class="mb-4" id="loteDetailsContainerModal" style="display: none;">
+                            <legend class="h6 mb-3">
+                                <i class="fas fa-edit me-2"></i>
+                                2. Preencha os detalhes do novo lote
+                            </legend>
+                            
+                            <div class="mb-3">
+                                <label for="novo_lote" class="form-label">
+                                    Número do Novo Lote <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="novo_lote" 
+                                       name="novo_lote" 
+                                       required 
+                                       placeholder="Digite o número do lote" 
+                                       minlength="1" 
+                                       maxlength="20"
+                                       aria-describedby="loteHelp">
+                                <div class="invalid-feedback">Por favor, informe o número do lote.</div>
+                                <div id="loteHelp" class="form-text">Informe um identificador único para o lote.</div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="quantidade_balcao" class="form-label">
+                                        Quantidade em Balcão <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="number" 
+                                           class="form-control" 
+                                           id="quantidade_balcao" 
+                                           name="quantidade_balcao" 
+                                           min="0" 
+                                           step="1" 
+                                           value="0" 
+                                           required>
+                                    <div class="invalid-feedback">Por favor, informe uma quantidade válida.</div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="quantidade_deposito" class="form-label">
+                                        Quantidade em Depósito <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="number" 
+                                           class="form-control" 
+                                           id="quantidade_deposito" 
+                                           name="quantidade_deposito" 
+                                           min="0" 
+                                           step="1" 
+                                           value="0" 
+                                           required>
+                                    <div class="invalid-feedback">Por favor, informe uma quantidade válida.</div>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="data_fabricacao" class="form-label">Data de Fabricação</label>
+                                    <input type="date" class="form-control" id="data_fabricacao" name="data_fabricacao">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="data_validade" class="form-label">Data de Validade</label>
+                                    <input type="date" class="form-control" id="data_validade" name="data_validade">
+                                </div>
+                            </div>
+                        </fieldset>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="salvarNovoLoteBtn" disabled>
+                        <i class="fas fa-save me-2"></i>Salvar Novo Lote
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="floating-help">
+        <button class="floating-help__button" data-bs-toggle="modal" data-bs-target="#helpModal" title="Ajuda" aria-label="Mostrar ajuda"><i class="fas fa-question" aria-hidden="true"></i></button>
+    </div>
+
+    <div class="modal fade" id="alertModal" tabindex="-1" aria-labelledby="alertModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="alertModalLabel">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Atenção
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body" id="alertModalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title" id="helpModalLabel"><i class="fas fa-question-circle me-2"></i>Ajuda - Contagem do Depósito</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                <div class="modal-body">
+                    <ul>
+                        <li>Digite a quantidade encontrada no depósito para cada produto.</li>
+                        <li>Pressione <b>ENTER</b> ou mude de campo para salvar o valor de um item automaticamente.</li>
+                        <li>Use <b>TAB</b> ou <b>ENTER</b> para navegar rapidamente entre os campos.</li>
+                    </ul><hr><h6>Dicas:</h6>
+                    <ul>
+                        <li>Se um valor já estiver preenchido, ele foi salvo anteriormente.</li>
+                        <li>Confira os códigos e lotes com <b>atenção.</b></li>
+                        <li>Em caso de dúvida, consulte o supervisor.</li>
+                    </ul>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-primary" data-bs-dismiss="modal">Entendi</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="confirmCancelModal" tabindex="-1" aria-labelledby="confirmCancelModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title" id="confirmCancelModalLabel"><i class="fas fa-exclamation-triangle me-2"></i>Cancelar Contagem</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                <div class="modal-body">Tem certeza que deseja <b>cancelar?</b> O progresso salvo item a item não será perdido, mas a contagem não será finalizada.</div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Não</button>
+                    {% set fabricante_encoded = fabricante|urlencode %}<a href="/contador/cancelar/{{ fabricante_encoded }}" class="btn btn-danger">Sim, Cancelar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="container text-center py-4">
+        <p>
+            <a href="https://validator.w3.org/check?uri=referer" target="_blank" rel="noopener noreferrer" title="Validar HTML5">
+                <picture>
+                    <source srcset="https://placehold.co/63x64/f06529/ffffff/avif?text=HTML5" type="image/avif">
+                    <source srcset="https://placehold.co/63x64/f06529/ffffff/webp?text=HTML5" type="image/webp">
+                    <img src="https://www.w3.org/html/logo/badge/html5-badge-h-solo.png" width="63" height="64" alt="HTML Válido!">
+                </picture>
+            </a>
+            <a href="https://jigsaw.w3.org/css-validator/check/referer" target="_blank" rel="noopener noreferrer" title="Validar CSS3">
+                 <picture>
+                    <source srcset="https://placehold.co/88x31/2965f1/ffffff/avif?text=CSS3" type="image/avif">
+                    <source srcset="https://placehold.co/88x31/2965f1/ffffff/webp?text=CSS3" type="image/webp">
+                    <img style="border:0;width:88px;height:31px" src="https://jigsaw.w3.org/css-validator/images/vcss-blue" alt="CSS Válido!">
+                </picture>
+            </a>
+        </p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script>
+        // Classe para gerenciar o estado da aplicação
+        class InventoryManager {
+            constructor() {
+                this.alertModal = new bootstrap.Modal(document.getElementById('alertModal'));
+                this.adicionarLoteModal = new bootstrap.Modal(document.getElementById('adicionarLoteModal'));
+                this.loadingOverlay = document.getElementById('loadingOverlay');
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+            }
+
+            bindEvents() {
+                // Eventos do Modal
+                this.bindModalEvents();
+            }
+
+            bindModalEvents() {
+                const adicionarLoteModalEl = document.getElementById('adicionarLoteModal');
+                const produtoSelectModal = document.getElementById('produtoSelectModal');
+                const loteDetailsContainerModal = document.getElementById('loteDetailsContainerModal');
+                const salvarNovoLoteBtn = document.getElementById('salvarNovoLoteBtn');
+                const formAdicionarLote = document.getElementById('formAdicionarLote');
+
+                // Carregar produtos quando o modal abrir
+                if (adicionarLoteModalEl) { // Adiciona uma verificação para o elemento
+                    adicionarLoteModalEl.addEventListener('show.bs.modal', () => {
+                        this.loadProdutos();
+                    });
+
+                    // Resetar modal quando fechar
+                    adicionarLoteModalEl.addEventListener('hidden.bs.modal', () => {
+                        this.resetModal();
+                    });
+                }
+
+                // Quando selecionar produto
+                if (produtoSelectModal) { // Adiciona uma verificação para o elemento
+                    produtoSelectModal.addEventListener('change', () => {
+                        if (produtoSelectModal.value) {
+                            loteDetailsContainerModal.style.display = 'block';
+                            document.getElementById('novo_lote').focus();
+                        } else {
+                            loteDetailsContainerModal.style.display = 'none';
+                            salvarNovoLoteBtn.disabled = true;
+                        }
+                    });
+                }
+
+                // Validação do formulário
+                if (formAdicionarLote) { // Adiciona uma verificação para o elemento
+                    formAdicionarLote.addEventListener('input', () => {
+                        salvarNovoLoteBtn.disabled = !formAdicionarLote.checkValidity();
+                    });
+                }
+
+                // Salvar novo lote
+                if (salvarNovoLoteBtn) { // Adiciona uma verificação para o elemento
+                    salvarNovoLoteBtn.addEventListener('click', () => {
+                        this.salvarNovoLote();
+                    });
+                }
+            }
+
+            showAlert(message) {
+                const alertBody = document.getElementById('alertModalBody');
+                if (alertBody) {
+                    alertBody.textContent = message;
+                    this.alertModal.show();
+                }
+            }
+
+            showError(message) {
+                const errorDiv = document.getElementById('modalErrorMessage');
+                if (errorDiv) {
+                    errorDiv.textContent = message;
+                    errorDiv.classList.remove('d-none');
+                    setTimeout(() => {
+                        errorDiv.classList.add('d-none');
+                    }, 5000);
+                }
+            }
+
+            hideError() {
+                const errorDiv = document.getElementById('modalErrorMessage');
+                if (errorDiv) {
+                    errorDiv.classList.add('d-none');
+                }
+            }
+
+            showLoading(show = true) {
+                if (this.loadingOverlay) {
+                    this.loadingOverlay.style.display = show ? 'flex' : 'none';
+                }
+            }
+
+            async loadProdutos() {
+                const fabricante = '{{ fabricante }}';
+                const produtoSelectModal = document.getElementById('produtoSelectModal');
+                const loadingSpinnerModal = document.getElementById('loadingSpinnerModal');
+                
+                if (!produtoSelectModal || !loadingSpinnerModal) return;
+
+                produtoSelectModal.innerHTML = '<option value="" selected disabled>-- Carregando produtos... --</option>';
+                produtoSelectModal.disabled = true;
+                loadingSpinnerModal.style.display = 'inline-block';
+
+                try {
+                    const response = await fetch(`/contador/api/produtos/${encodeURIComponent(fabricante)}`);
+                    
+                    if (!response.ok) {
+                        throw new Error('Erro na rede');
+                    }
+                    
+                    const produtos = await response.json();
+                    
+                    produtoSelectModal.disabled = false;
+                    produtoSelectModal.innerHTML = '<option value="" selected disabled>-- Escolha um produto --</option>';
+                    
+                    produtos.forEach(produto => {
+                        const option = document.createElement('option');
+                        option.value = produto.codigo;
+                        option.textContent = `${produto.codigo} - ${produto.nome}`;
+                        produtoSelectModal.appendChild(option);
+                    });
+                    
+                } catch (error) {
+                    console.error('Erro ao buscar produtos:', error);
+                    produtoSelectModal.innerHTML = '<option value="" selected disabled>-- Erro ao carregar --</option>';
+                    this.showError('Erro ao carregar produtos: ' + error.message);
+                } finally {
+                    loadingSpinnerModal.style.display = 'none';
+                }
+            }
+
+            resetModal() {
+                const formAdicionarLote = document.getElementById('formAdicionarLote');
+                const loteDetailsContainerModal = document.getElementById('loteDetailsContainerModal');
+                const salvarNovoLoteBtn = document.getElementById('salvarNovoLoteBtn');
+                
+                if (formAdicionarLote) {
+                    formAdicionarLote.reset();
+                    formAdicionarLote.classList.remove('was-validated');
+                }
+                
+                if (loteDetailsContainerModal) {
+                    loteDetailsContainerModal.style.display = 'none';
+                }
+                
+                if (salvarNovoLoteBtn) {
+                    salvarNovoLoteBtn.disabled = true;
+                    salvarNovoLoteBtn.innerHTML = '<i class="fas fa-save me-2"></i>Salvar Novo Lote';
+                }
+                
+                this.hideError();
+            }
+
+            async salvarNovoLote() {
+                const form = document.getElementById('formAdicionarLote');
+                const saveButton = document.getElementById('salvarNovoLoteBtn');
+                
+                if (!form || !saveButton) return;
+                
+                // Validação do formulário
+                if (!form.checkValidity()) {
+                    form.classList.add('was-validated');
+                    return;
+                }
+
+                this.hideError();
+                
+                // Desabilitar botão e mostrar loading
+                saveButton.disabled = true;
+                saveButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Salvando...';
+                this.showLoading(true);
+
+                const formData = new FormData(form);
+
+                try {
+                    const response = await fetch('/contador/adicionar_lote_modal', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        const text = await response.text();
+                        console.error('Resposta não é JSON:', text);
+                        throw new Error('O servidor retornou uma resposta inválida. Verifique se a rota está configurada corretamente.');
+                    }
+                    
+                    if (!response.ok) {
+                        const data = await response.json();
+                        throw new Error(data.message || `Erro HTTP ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        alert('Novo lote adicionado com sucesso!');
+                        this.adicionarLoteModal.hide();
+                        location.reload();
+                    } else {
+                        throw new Error(data.message || 'Erro desconhecido do servidor');
+                    }
+                    
+                } catch (error) {
+                    console.error('Erro completo:', error);
+                    this.showError('Erro ao salvar: ' + error.message);
+                } finally {
+                    this.showLoading(false);
+                    saveButton.disabled = false;
+                    saveButton.innerHTML = '<i class="fas fa-save me-2"></i>Salvar Novo Lote';
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputs = document.querySelectorAll('.product-card__input');
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const totalProdutos = {{ produtos|length if produtos else 0 }};
+            const saveButton = document.getElementById('btnSalvar');
+            
+            if (inputs.length > 0) {
+                inputs[0].focus();
+                inputs[0].select();
+            }
+            
+            function atualizarProgresso() {
+                if(totalProdutos === 0) return;
+                const preenchidos = Array.from(inputs).filter(input => input.value.trim() !== '').length;
+                const porcentagem = (preenchidos / totalProdutos) * 100;
+                
+                progressBar.style.width = porcentagem + '%';
+                progressBar.setAttribute('aria-valuenow', porcentagem);
+                progressText.textContent = `${preenchidos} de ${totalProdutos} produtos`;
+                progressBar.classList.toggle('pulse', porcentagem === 100);
+            }
+            
+            function salvarValor(inputField) {
+                const data = {
+                    codigo: inputField.dataset.codigo,
+                    lote: inputField.dataset.lote,
+                    tipo_estoque: inputField.dataset.tipoEstoque,
+                    valor: inputField.value || 0
+                };
+
+                const indicator = inputField.parentNode.querySelector('.save-indicator');
+                indicator.innerHTML = '<i class="fas fa-spin fa-spinner text-muted" aria-hidden="true"></i><span class="visually-hidden">Salvando...</span>';
+
+                fetch("{{ url_for('contador.salvar_item_parcial') }}", {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data),
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        indicator.innerHTML = '<i class="fas fa-check-circle text-success" aria-hidden="true"></i><span class="visually-hidden">Salvo com sucesso.</span>';
+                    } else {
+                        indicator.innerHTML = '<i class="fas fa-times-circle text-danger" aria-hidden="true"></i><span class="visually-hidden">Erro ao salvar.</span>';
+                    }
+                    setTimeout(() => { indicator.innerHTML = ''; }, 2000);
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    indicator.innerHTML = '<i class="fas fa-exclamation-triangle text-danger" aria-hidden="true"></i><span class="visually-hidden">Erro de conexão.</span>';
+                });
+            }
+
+            inputs.forEach((input, index) => {
+                input.addEventListener('input', () => {
+                    if (input.value < 0) input.value = 0;
+                    atualizarProgresso();
+                });
+
+                input.addEventListener('change', () => salvarValor(input));
+                
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        salvarValor(this);
+                        const nextInput = inputs[index + 1];
+                        if (nextInput) {
+                            nextInput.focus();
+                            nextInput.select();
+                        } else if(saveButton) {
+                            saveButton.focus();
+                        }
+                    }
+                });
+            });
+            
+            atualizarProgresso();
+
+            // Inicializar a classe InventoryManager para o modal de adicionar lote
+            new InventoryManager();
+        });
+    </script>
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => console.log('Service Worker registrado:', registration.scope))
+                    .catch(error => console.log('Falha ao registrar Service Worker:', error));
+            });
+        }
+        /*
+          CONTEÚDO DO ARQUIVO /service-worker.js (EXEMPLO)
+          const CACHE_NAME = 'deposito-cache-v1';
+          const urlsToCache = [
+            '/contador/contar_deposito/{{ fabricante }}',
+            '/contador/dashboard',
+            'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css',
+            'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css',
+            'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js'
+          ];
+          self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(urlsToCache))));
+          self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
+        */
+    </script>
+
+    <script type="module">
+       
+        import { onCLS, onFID, onLCP } from 'https://unpkg.com/web-vitals@3/dist/web-vitals.attribution.js?module';
+        onCLS(console.log);
+        onFID(console.log);
+        onLCP(console.log);
+    </script>
+</body>
+</html>

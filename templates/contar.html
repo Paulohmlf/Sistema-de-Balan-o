@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contagem de Inventário - Sistema Otimizado</title>
+
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2c3e50">
+
+    <style>
+
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            --border-radius: 12px;
+            --count-color: #2c3e50;
+            --count-light: #ecf0f1;
+        }
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        .page-nav {
+            background: linear-gradient(135deg, var(--count-color) 0%, #34495e 100%);
+            box-shadow: var(--card-shadow);
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+        }
+        .page-nav__brand { font-weight: 700; font-size: 1.5rem; }
+        .main-container { padding: 2rem 0; }
+        .page-header {
+            background: linear-gradient(135deg, var(--count-color) 0%, #34495e 100%);
+            color: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+        }
+        .page-header__title { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .page-header__subtitle { font-size: 1.2rem; opacity: 0.9; margin-bottom: 0; }
+        .progress-tracker {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+        }
+        .progress-tracker__bar-wrapper { height: 12px; border-radius: 10px; background-color: #e9ecef; }
+        .progress-tracker__bar { background: linear-gradient(90deg, var(--count-color) 0%, #34495e 100%); border-radius: 10px; }
+        .product-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--card-shadow);
+            border-left: 4px solid var(--count-color);
+            transition: all 0.3s ease;
+        }
+        .product-card:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); }
+        .product-card__header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; }
+        .product-card__name { font-weight: 600; font-size: 1.1rem; color: #333; margin-bottom: 0.5rem; }
+        .product-card__info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+        .product-card__info-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; color: #666; }
+        .product-card__info-item i { color: var(--count-color); width: 16px; }
+        .product-card__system-stock { background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%); border-radius: var(--border-radius); padding: 1rem; margin-bottom: 1rem; border-left: 4px solid var(--success-color); }
+        .product-card__system-stock-label { font-size: 0.875rem; color: #666; margin-bottom: 0.25rem; }
+        .product-card__system-stock-value { font-size: 1.5rem; font-weight: 700; color: var(--success-color); }
+        .product-card__input { border-radius: var(--border-radius); padding: 0.875rem 1rem; font-size: 1.1rem; font-weight: 600; }
+        .lote-badge { background: var(--count-light); color: var(--count-color); padding: 0.25rem 0.75rem; border-radius: 15px; font-size: 0.8rem; font-weight: 600; }
+        .lote-badge--no-lote { background: #e9ecef; color: #6c757d; }
+        .action-bar {
+            position: sticky;
+            bottom: 2rem;
+            background: white;
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            margin-top: 2rem;
+            border-top: 3px solid var(--count-color);
+        }
+        .floating-help { position: fixed; bottom: 2rem; right: 2rem; z-index: 1000; }
+        .floating-help__button {
+            width: 60px; height: 60px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--info-color) 0%, #138496 100%);
+            color: white; border: none; font-size: 1.5rem;
+            box-shadow: 0 8px 25px rgba(23, 162, 184, 0.4);
+            transition: all 0.3s ease;
+        }
+        .floating-help__button:hover { transform: scale(1.1); box-shadow: 0 12px 35px rgba(23, 162, 184, 0.6); }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(44, 62, 80, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(44, 62, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(44, 62, 80, 0); }
+        }
+        @media (max-width: 768px) {
+            .main-container { padding: 1rem; }
+            .page-header__title { font-size: 2rem; }
+            .product-card__info-grid { grid-template-columns: 1fr; }
+            .action-bar { position: static; margin-top: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark page-nav">
+        <div class="container">
+            <a class="navbar-brand page-nav__brand" href="/contador/dashboard"><i class="fas fa-clipboard-list me-2" aria-hidden="true"></i>Contagem de Inventário</a>
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3"><i class="fas fa-user me-1" aria-hidden="true"></i>{{ session.user_full_name if session.user_full_name else 'Usuário' }}</span>
+                <button type="button" class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#confirmCancelModal"><i class="fas fa-arrow-left me-1" aria-hidden="true"></i>Voltar</button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container main-container">
+        <header class="page-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="page-header__title"><i class="fas fa-clipboard-list me-3" aria-hidden="true"></i>Contagem de Inventário</h1>
+                    <p class="page-header__subtitle">Fabricante: <strong>{{ fabricante if fabricante else 'Não especificado' }}</strong></p>
+                </div>
+                <div class="col-md-4 text-end"><i class="fas fa-boxes" style="font-size: 4rem; opacity: 0.3;" aria-hidden="true"></i></div>
+            </div>
+        </header>
+
+        <section class="progress-tracker">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h6 class="mb-0"><i class="fas fa-tasks me-2" aria-hidden="true"></i>Progresso da Contagem</h6>
+                <span class="badge bg-primary" id="progress-text" aria-live="polite">0 de {{ produtos|length if produtos else 0 }} produtos</span>
+            </div>
+            <div class="progress progress-tracker__bar-wrapper">
+                <div class="progress-bar progress-tracker__bar" role="progressbar" style="width: 0%" id="progress-bar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+        </section>
+
+        <form method="POST" action="/contador/salvar_contagem" id="contagemForm">
+            <input type="hidden" name="fabricante" value="{{ fabricante if fabricante else '' }}">
+            
+            {% if produtos %}
+                {% for produto in produtos %}
+                    <article class="product-card" data-produto-index="{{ loop.index0 }}">
+                        <div class="product-card__header">
+                            <div class="flex-grow-1">
+                                <h5 class="product-card__name"><i class="fas fa-box me-2" aria-hidden="true"></i>{{ produto.PRODUTO }}</h5>
+                                <div class="product-card__info-grid">
+                                    <div class="product-card__info-item"><i class="fas fa-barcode" aria-hidden="true"></i><span><strong>Código:</strong> {{ produto.CÓDIGO }}</span></div>
+                                    <div class="product-card__info-item"><i class="fas fa-tag" aria-hidden="true"></i><span><strong>Lote:</strong> <span class="lote-badge {{ 'lote-badge--no-lote' if not produto.LOTE or produto.LOTE == 'N/A' else '' }}">{{ produto.LOTE if produto.LOTE and produto.LOTE != 'N/A' else 'Sem Lote' }}</span></span></div>
+                                    <div class="product-card__info-item"><i class="fas fa-industry" aria-hidden="true"></i><span><strong>Fabricante:</strong> {{ produto.FABRICANTE if produto.FABRICANTE else 'N/A' }}</span></div>
+                                </div>
+                                <div class="product-card__system-stock">
+                                    <div class="product-card__system-stock-label"><i class="fas fa-database me-1" aria-hidden="true"></i>Estoque no Sistema</div>
+                                    <div class="product-card__system-stock-value">{{ produto.ESTOQUE_SISTEMA if produto.ESTOQUE_SISTEMA is not none else 0 }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="input-group">
+                            <label for="quantidade-{{ loop.index0 }}" class="input-group-text"><i class="fas fa-calculator me-2" aria-hidden="true"></i>Quantidade Contada</label>
+                            <input type="number" class="form-control product-card__input" id="quantidade-{{ loop.index0 }}" name="quantidade_{{ produto.CÓDIGO }}|{{ produto.LOTE if produto.LOTE else '' }}" placeholder="Digite a quantidade" min="0" step="1" autocomplete="off">
+                        </div>
+                    </article>
+                {% endfor %}
+            {% else %}
+                <div class="text-center p-5 bg-light rounded">
+                    <i class="fas fa-box-open fa-4x text-muted mb-3" aria-hidden="true"></i>
+                    <h3>Nenhum produto encontrado</h3>
+                    <p class="text-muted">Não há produtos para contagem neste fabricante.</p>
+                </div>
+            {% endif %}
+
+            {% if produtos %}
+                <div class="action-bar">
+                    <div class="row">
+                        <div class="col-md-6 mb-2">
+                            <button type="submit" class="btn btn-primary w-100" id="btnSalvar"><i class="fas fa-save me-2" aria-hidden="true"></i>Salvar Contagem</button>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                             <button type="button" class="btn btn-secondary w-100" data-bs-toggle="modal" data-bs-target="#confirmCancelModal"><i class="fas fa-times me-2" aria-hidden="true"></i>Cancelar e Voltar</button>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </form>
+    </main>
+
+    <div class="floating-help">
+        <button class="floating-help__button" data-bs-toggle="modal" data-bs-target="#helpModal" title="Ajuda" aria-label="Mostrar ajuda"><i class="fas fa-question" aria-hidden="true"></i></button>
+    </div>
+
+    <!-- Modais -->
+    <div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="helpModalLabel"><i class="fas fa-question-circle me-2"></i>Ajuda - Contagem de Inventário</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ul>
+                        <li>Digite a quantidade encontrada fisicamente para cada produto.</li>
+                        <li>Use <b>TAB</b> ou <b>ENTER</b> para navegar facilmente entre os campos de quantidade.</li>
+                        <li>Seu progresso é salvo automaticamente no seu navegador a cada 30 segundos.</li>
+                    </ul>
+                    <hr>
+                    <h6>Dicas:</h6>
+                    <ul>
+                        <li>Confira os códigos e lotes com atenção.</li>
+                        <li>Campos não preenchidos serão considerados como zero.</li>
+                        <li>Em caso de dúvida, consulte o supervisor responsável.</li>
+                    </ul>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-primary" data-bs-dismiss="modal">Entendi</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="confirmSubmitModal" tabindex="-1" aria-labelledby="confirmSubmitModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmSubmitModalLabel"><i class="fas fa-exclamation-triangle me-2"></i>Confirmar Envio</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="submitModalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Revisar</button>
+                    <button type="button" id="confirmSubmitButton" class="btn btn-primary">Sim, continuar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="confirmCancelModal" tabindex="-1" aria-labelledby="confirmCancelModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmCancelModalLabel"><i class="fas fa-exclamation-triangle me-2"></i>Cancelar Contagem</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">Tem certeza que deseja cancelar? Todos os dados não salvos serão perdidos.</div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Não</button>
+                    <a href="/contador/dashboard" class="btn btn-danger">Sim, Cancelar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <footer class="container text-center py-4">
+        <p>
+
+            <a href="https://validator.w3.org/check?uri=referer" target="_blank" rel="noopener noreferrer" title="Validar HTML5">
+                <picture>
+                    <source srcset="https://placehold.co/63x64/f06529/ffffff/avif?text=HTML5" type="image/avif">
+                    <source srcset="https://placehold.co/63x64/f06529/ffffff/webp?text=HTML5" type="image/webp">
+                    <img src="https://www.w3.org/html/logo/badge/html5-badge-h-solo.png" width="63" height="64" alt="HTML Válido!">
+                </picture>
+            </a>
+            <a href="https://jigsaw.w3.org/css-validator/check/referer" target="_blank" rel="noopener noreferrer" title="Validar CSS3">
+                 <picture>
+                    <source srcset="https://placehold.co/88x31/2965f1/ffffff/avif?text=CSS3" type="image/avif">
+                    <source srcset="https://placehold.co/88x31/2965f1/ffffff/webp?text=CSS3" type="image/webp">
+                    <img style="border:0;width:88px;height:31px" src="https://jigsaw.w3.org/css-validator/images/vcss-blue" alt="CSS Válido!">
+                </picture>
+            </a>
+        </p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputs = document.querySelectorAll('.product-card__input');
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const totalProdutos = {{ produtos|length if produtos else 0 }};
+            const form = document.getElementById('contagemForm');
+            const saveButton = document.getElementById('btnSalvar');
+            const submitModal = new bootstrap.Modal(document.getElementById('confirmSubmitModal'));
+
+            if (inputs.length > 0) inputs[0].focus();
+            
+            function atualizarProgresso() {
+                if (!totalProdutos) return;
+                const preenchidos = Array.from(inputs).filter(input => input.value.trim() !== '').length;
+                const porcentagem = (preenchidos / totalProdutos) * 100;
+                
+                progressBar.style.width = porcentagem + '%';
+                progressBar.setAttribute('aria-valuenow', porcentagem);
+                progressText.textContent = `${preenchidos} de ${totalProdutos} produtos`;
+                progressBar.classList.toggle('pulse', porcentagem === 100);
+            }
+            
+            inputs.forEach((input, index) => {
+                input.addEventListener('input', () => {
+                    if (input.value < 0) input.value = 0;
+                    atualizarProgresso();
+                });
+                
+                input.addEventListener('keypress', e => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const nextInput = inputs[index + 1];
+                        if (nextInput) nextInput.focus();
+                        else if(saveButton) saveButton.focus();
+                    }
+                });
+            });
+            
+            if(form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const preenchidos = Array.from(inputs).filter(input => input.value.trim() !== '').length;
+                    
+                    let message = '';
+                    if (preenchidos === 0 && totalProdutos > 0) {
+                        message = 'Por favor, preencha pelo menos um produto antes de salvar.';
+                    } else if (preenchidos < totalProdutos) {
+                        message = `Você preencheu apenas ${preenchidos} de ${totalProdutos} produtos. Deseja continuar mesmo assim?`;
+                    }
+
+                    if(message){
+                        document.getElementById('submitModalBody').textContent = message;
+                        submitModal.show();
+                    } else {
+                        form.submit();
+                    }
+                });
+
+                document.getElementById('confirmSubmitButton').addEventListener('click', () => form.submit());
+            }
+
+            const fabricante = "{{ fabricante if fabricante else 'geral' }}".replace(/[^a-zA-Z0-9]/g, '_');
+            const storageKey = `contagem_${fabricante}`;
+
+            function salvarProgressoLocal() {
+                const dados = {};
+                inputs.forEach(input => {
+                    if (input.value.trim() !== '') dados[input.name] = input.value;
+                });
+                localStorage.setItem(storageKey, JSON.stringify(dados));
+            }
+
+            function carregarProgressoLocal() {
+                const dados = localStorage.getItem(storageKey);
+                if (!dados) return;
+                try {
+                    const progressoSalvo = JSON.parse(dados);
+                    Object.keys(progressoSalvo).forEach(name => {
+                        const input = document.querySelector(`.product-card__input[name="${name}"]`);
+                        if (input) input.value = progressoSalvo[name];
+                    });
+                } catch (error) {
+                    console.error("Erro ao carregar progresso salvo:", error);
+                    localStorage.removeItem(storageKey);
+                }
+            }
+
+            carregarProgressoLocal();
+            atualizarProgresso();
+            setInterval(salvarProgressoLocal, 30000);
+        });
+    </script>
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => console.log('Service Worker registrado:', registration.scope))
+                    .catch(error => console.log('Falha ao registrar Service Worker:', error));
+            });
+        }
+        /*
+          CONTEÚDO DO ARQUIVO /service-worker.js (EXEMPLO)
+          const CACHE_NAME = 'contagem-cache-v1';
+          const urlsToCache = [
+            '/contador/contar_fabricante/{{ fabricante }}',
+            '/contador/dashboard',
+            'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css',
+            'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css',
+            'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js'
+          ];
+          self.addEventListener('install', e => e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(urlsToCache))));
+          self.addEventListener('fetch', e => e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))));
+        */
+    </script>
+
+    <script type="module">
+        import { onCLS, onFID, onLCP } from 'https://unpkg.com/web-vitals@3/dist/web-vitals.attribution.js?module';
+        onCLS(console.log);
+        onFID(console.log);
+        onLCP(console.log);
+    </script>
+</body>
+</html>

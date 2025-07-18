@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Inventário - Dashboard Gestor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <style>
+        :root {
+        
+        --primary-color: #475569;   
+        --secondary-color: #334155; 
+        --success-color: #16a34a;   
+        --warning-color: #d97706;   
+        --danger-color: #be123c;    
+        --info-color: #0e7490;      
+
+        --light-bg: #f8f9fa;
+        --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); 
+        --border-radius: 12px;
+        --dashboard-gradient: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: var(--dashboard-gradient);
+            box-shadow: var(--card-shadow);
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+        }
+
+        .main-container {
+            padding: 2rem 0;
+        }
+
+        .header-card {
+            background: var(--dashboard-gradient);
+            color: white;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+        }
+
+        .header-card h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .header-card .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card.verified { border-left-color: var(--info-color); } /* Or choose a different color */
+        .stat-card.verified .stat-number { color: var(--info-color); }
+        .stat-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card.total { border-left-color: var(--info-color); }
+        .stat-card.pending { border-left-color: var(--warning-color); }
+        .stat-card.completed { border-left-color: var(--success-color); }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card.total .stat-number { color: var(--info-color); }
+        .stat-card.pending .stat-number { color: var(--warning-color); }
+        .stat-card.completed .stat-number { color: var(--success-color); }
+
+        .stat-label {
+            font-size: 1rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-icon {
+            font-size: 1.5rem;
+            opacity: 0.7;
+            float: right;
+            margin-top: -3rem;
+        }
+
+        .filter-card, .results-card, .reports-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .filter-card { border-left: 4px solid var(--primary-color); }
+        .reports-card { border-left: 4px solid var(--success-color); }
+
+        .filter-title {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .results-title {
+            color: var(--primary-color);
+            font-weight: 700;
+            font-size: 1.3rem;
+            margin: 0;
+        }
+
+        .table thead th {
+            background: var(--dashboard-gradient);
+            color: white;
+        }
+
+        .status-badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: center;
+            min-width: 100px;
+            display: inline-block;
+        }
+
+        .status-pending {
+        background: linear-gradient(135deg, #e5c986 0%, #d8b163 100%);
+        color: #422e0e;
+        }
+        .status-progress {
+        background: linear-gradient(135deg, #586a87 0%, #405069 100%);
+        color: white;
+        }
+        .status-completed {
+        background: linear-gradient(135deg, #447a61 0%, #35644e 100%);
+        color: white;
+        }
+        
+        .chat-toggle-button {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            width: 60px;
+            height: 60px;
+            background: var(--dashboard-gradient);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            cursor: pointer;
+            z-index: 1050;
+            transition: all 0.3s ease;
+        }
+        .chat-toggle-button:hover {
+            transform: scale(1.1);
+        }
+        .chat-window {
+            position: fixed;
+            bottom: 100px;
+            right: 25px;
+            width: 370px;
+            max-width: 90vw;
+            height: 500px;
+            max-height: 70vh;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 1040;
+            transform: scale(0.5) translateY(100px);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .chat-window.open {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .chat-header {
+            background: var(--dashboard-gradient);
+            color: white;
+            padding: 1rem;
+            font-weight: 600;
+        }
+        .chat-header i { margin-right: 10px; }
+        .chat-body {
+            flex-grow: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .chat-message {
+            padding: 0.75rem 1rem;
+            border-radius: 18px;
+            max-width: 85%;
+            line-height: 1.4;
+        }
+        .chat-message.user {
+            background-color: var(--primary-color);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-message.ai {
+            background-color: #f1f0f0;
+            color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        .chat-message.ai.typing {
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .chat-message.ai.typing .dot {
+            width: 8px;
+            height: 8px;
+            background-color: #aaa;
+            border-radius: 50%;
+            animation: typing-animation 1.5s infinite;
+        }
+        .chat-message.ai.typing .dot:nth-child(2) { animation-delay: 0.2s; }
+        .chat-message.ai.typing .dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing-animation {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+        .chat-footer {
+            padding: 0.5rem 1rem;
+            border-top: 1px solid #eee;
+        }
+        .chat-footer form { display: flex; gap: 10px; }
+        .chat-footer input {
+            border: none;
+            flex-grow: 1;
+            padding: 0.5rem;
+        }
+        .chat-footer input:focus { outline: none; box-shadow: none; }
+        .chat-footer button {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            font-size: 1.5rem;
+        }
+
+        @media (max-width: 768px) {
+            .main-container { padding: 1rem; }
+            .header-card { padding: 1.5rem; }
+            .header-card h1 { font-size: 2rem; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-warehouse me-2"></i>Sistema de Inventário
+            </a>
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-user me-1"></i>{{ session.user_full_name }}
+                    </a>
+                    <ul class="dropdown-menu">
+                        
+                        <li><a class="dropdown-item" href="{{ url_for('gestor.auditoria_recontagem') }}"><i class="fas fa-search-location me-2"></i>Auditoria</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('gestor.redefinir_senha') }}"><i class="fas fa-key me-2"></i>Redefinir Senha</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Sair</a></li>                    
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container main-container">
+        <!-- Header Card -->
+        <div class="header-card">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-tachometer-alt me-3"></i>Dashboard do Gestor</h1>
+                    <p class="subtitle">Controle e monitoramento do inventário em tempo real</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <i class="fas fa-chart-line" style="font-size: 4rem; opacity: 0.3;"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card total">
+                <div class="stat-number" id="total-fabricantes">
+                    {{ fabricantes_status|length if fabricantes_status else 0 }}
+                </div>
+                <div class="stat-label">Total de Fabricantes</div>
+                <i class="fas fa-industry stat-icon"></i>
+            </div>
+            <div class="stat-card pending">
+                <div class="stat-number" id="pendentes">
+                    {% set pendentes = namespace(count=0) %}
+                    {% for fab_info in fabricantes_status.values() %}{% if fab_info.status == 'Pendente' %}{% set pendentes.count = pendentes.count + 1 %}{% endif %}{% endfor %}
+                    {{ pendentes.count }}
+                </div>
+                <div class="stat-label">Pendentes</div>
+                <i class="fas fa-clock stat-icon"></i>
+            </div>
+            <div class="stat-card in-progress"> <div class="stat-number" id="em-andamento">
+                    {% set em_andamento = namespace(count=0) %}
+                    {% for fab_info in fabricantes_status.values() %}{% if fab_info.status == 'Em Andamento' %}{% set em_andamento.count = em_andamento.count + 1 %}{% endif %}{% endfor %}
+                    {{ em_andamento.count }}
+                </div>
+                <div class="stat-label">Em Andamento</div>
+                <i class="fas fa-sync-alt stat-icon"></i> </div>
+            <div class="stat-card completed">
+                <div class="stat-number" id="concluidos">
+                    {% set concluidos = namespace(count=0) %}
+                    {% for fab_info in fabricantes_status.values() %}{% if fab_info.status == 'Concluído' %}{% set concluidos.count = concluidos.count + 1 %}{% endif %}{% endfor %}
+                    {{ concluidos.count }}
+                </div>
+                <div class="stat-label">Concluídos</div>
+                <i class="fas fa-check-circle stat-icon"></i>
+            </div>
+            <div class="stat-card verified">
+                <div class="stat-number" id="verificados">
+                    {% set verificados = namespace(count=0) %}
+                    {% for fab_info in fabricantes_status.values() %}
+                        {% if fab_info.status_verificado %}
+                            {% set verificados.count = verificados.count + 1 %}
+                        {% endif %}
+                    {% endfor %}
+                    {{ verificados.count }}
+                </div>
+                <div class="stat-label">Verificados</div>
+                <i class="fas fa-certificate stat-icon"></i>
+            </div>
+        </div>
+
+        <!-- Filters Card -->
+        <div class="filter-card">
+            <h5 class="filter-title"><i class="fas fa-filter me-2"></i>Filtros e Ações</h5>
+            <form method="POST" action="/" id="filterForm">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="fabricantes" class="form-label"><i class="fas fa-industry me-1"></i>Selecionar Fabricantes</label>
+                        <select multiple class="form-select" id="fabricantes" name="fabricantes" size="5">
+                            {% for fab_nome, fab_info in fabricantes_status.items() %}
+                                <option value="{{ fab_nome }}" {{ 'selected' if fab_nome in fabricantes_selecionados else '' }}>
+                                    {{ fab_nome }} ({{ fab_info.status }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Mantenha Ctrl pressionado para selecionar múltiplos</small>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="percentual_divergencia" class="form-label"><i class="fas fa-percentage me-1"></i>Percentual de Divergência (%)</label>
+                        <input type="number" class="form-control" id="percentual_divergencia" name="percentual_divergencia" value="{{ percentual_divergencia_aplicado if percentual_divergencia_aplicado else '5' }}" min="0" max="100" step="0.1" placeholder="5.0">
+                        <small class="text-muted">Para análise de divergências</small>
+                    </div>
+                    <div class="col-md-4 mb-3 d-flex align-items-end">
+                        <div class="w-100">
+                            <button type="submit" name="ver_fabricantes" class="btn btn-primary w-100 mb-2"><i class="fas fa-eye me-2"></i>Ver Selecionados</button>
+                            <button type="submit" name="ver_todos" class="btn btn-info w-100 mb-2"><i class="fas fa-list me-2"></i>Ver Todos</button>
+                            <button type="submit" name="analisar_divergencia" class="btn btn-success w-100"><i class="fas fa-search me-2"></i>Análise de Divergência</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Manufacturers Table -->
+        <div class="results-card">
+            <div class="results-header">
+                <h3 class="results-title"><i class="fas fa-industry me-2"></i>Status dos Fabricantes</h3>
+            </div>
+            {% if fabricantes_status %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="fabricantesTable">
+                        <thead>
+                            <tr>
+                                <th>Fabricante</th>
+                                <th>Status</th>
+                                <th>Responsável</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for fab_nome, fab_info in fabricantes_status.items() %}
+                                <tr>
+                                    <td><i class="fas fa-industry me-2 text-primary"></i><strong>{{ fab_nome }}</strong></td>
+                                    <td><span class="status-badge status-{{ 'pending' if fab_info.status == 'Pendente' else ('progress' if fab_info.status == 'Em Andamento' else 'completed') }}">{{ fab_info.status }}</span></td>
+                                    <td>{% if fab_info.user %}<i class="fas fa-user me-1"></i>{{ fab_info.user }}{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-primary btn-sm" onclick="verDetalhes('{{ fab_nome }}')" title="Ver detalhes"><i class="fas fa-eye"></i></button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Inventory Results -->
+        {% if inventario %}
+            <div class="results-card">
+                <div class="results-header">
+                    <h3 class="results-title"><i class="fas fa-boxes me-2"></i>Itens do Inventário (Filtrados)</h3>
+                    <span class="badge bg-primary fs-6">{{ inventario|length }} itens</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="inventarioTable">
+                         <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Produto</th>
+                                <th>Lote</th>
+                                <th>Estoque Sistema</th>
+                                <th>Inventário Final</th>
+                                <th>Diferença</th>
+                                <th>Status</th>
+                                <th>Contador</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in inventario %}
+                                <tr>
+                                    <td><code>{{ item.CÓDIGO }}</code></td>
+                                    <td class="text-truncate" style="max-width: 200px;" title="{{ item.PRODUTO }}">{{ item.PRODUTO }}</td>
+                                    <td><span class="badge bg-secondary">{{ item.LOTE if item.LOTE and item.LOTE != 'N/A' else 'N/A' }}</span></td>
+                                    <td class="text-center">{{ item.ESTOQUE_SISTEMA }}</td>
+                                    <td class="text-center">{{ item.INVENTARIO }}</td>
+                                    <td class="text-center">
+                                        {% set diferenca = item.DIFERENCA_NUMERICA_CALC %}
+                                        <span class="{% if diferenca > 0 %}text-success{% elif diferenca < 0 %}text-danger{% else %}text-muted{% endif %}">
+                                            {{ "%+.2f" | format(diferenca) }}
+                                        </span>
+                                    </td>
+                                    <td><span class="status-badge status-{{ 'pending' if item.STATUS == 'Pendente' else ('progress' if item.STATUS == 'Em Andamento' else 'completed') }}">{{ item.STATUS }}</span></td>
+                                    <td>{% if item.CONTADOR %}<i class="fas fa-user me-1"></i>{{ item.CONTADOR }}{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Reports and Upload Section -->
+        <div class="reports-card">
+            <h5 class="mb-3"><i class="fas fa-file-alt me-2"></i>Relatórios e Ações Gerais</h5>
+            <div class="d-flex flex-wrap gap-2 mb-4">
+                <a href="/download/ajustes" class="btn btn-info"><i class="fas fa-file-excel me-2"></i>Relatório de Ajustes</a>
+                <a href="/download/planilha_preenchida_recontagem" class="btn btn-secondary"><i class="fas fa-file-excel me-2"></i>Dados de Conferência</a>
+                <a href="/download/novos_lotes" class="btn btn-success"><i class="fas fa-file-excel me-2"></i>Relatório de Novos Lotes</a>
+            </div>
+            <hr>
+            <h5 class="mb-3 mt-4"><i class="fas fa-upload me-2"></i>Atualizar Planilha Excel</h5>
+            <form method="POST" action="/atualizar_planilha_existente" enctype="multipart/form-data">
+                <div class="row align-items-end">
+                    <div class="col-md-8 mb-3">
+                        <input type="file" class="form-control" name="planilha_excel" accept=".xlsx,.xls" required>
+                        <small class="text-muted">A planilha deve ter a mesma estrutura do arquivo base.</small>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <button type="submit" class="btn btn-success w-100"><i class="fas fa-upload me-2"></i>Processar e Baixar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- --- HTML DO CHATBOT --- -->
+    <!-- <div id="chat-toggle" class="chat-toggle-button" title="Assistente de Inventário">
+        <i class="fas fa-robot"></i>
+    </div> -->
+
+    <div id="chat-window" class="chat-window">
+        <div class="chat-header"><i class="fas fa-brain"></i> Assistente de Inventário</div>
+        <div id="chat-body" class="chat-body">
+            <div class="chat-message ai">Olá! Como posso ajudar com o inventário hoje?</div>
+        </div>
+        <div class="chat-footer">
+            <form id="chat-form">
+                <input type="text" id="chat-input" class="form-control" placeholder="Pergunte algo..." autocomplete="off" required>
+                <button type="submit" aria-label="Enviar Mensagem"><i class="fas fa-paper-plane"></i></button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+    $(document).ready(function() {
+
+        if ($('#fabricantesTable').length) {
+            $('#fabricantesTable').DataTable({
+                language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' },
+                pageLength: 15,
+                order: [[1, 'asc']],
+                columnDefs: [ { orderable: false, targets: [3] }, { className: 'text-center', targets: [1, 3] } ]
+            });
+        }
+        if ($('#inventarioTable').length) {
+            $('#inventarioTable').DataTable({
+                language: { url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json' },
+                pageLength: 25,
+                order: [[5, 'desc']],
+                scrollX: true
+            });
+        }
+        $('#filterForm').submit(function(e) {
+            const fabricantes = $('#fabricantes').val();
+            const submitButtonName = $('button[type="submit"][clicked=true]').attr('name');
+            if (submitButtonName === 'analisar_divergencia' && (!fabricantes || fabricantes.length === 0)) {
+                e.preventDefault();
+                alert('Selecione pelo menos um fabricante para análise de divergência.');
+                return false;
+            }
+        });
+        $('button[type="submit"]').click(function() {
+            $('button[type="submit"]').removeAttr('clicked');
+            $(this).attr('clicked', 'true');
+        });
+
+        function atualizarEstatisticas() {
+            $.ajax({
+                url: '/api/estatisticas',
+                method: 'GET',
+                success: function(data) {
+                    $('#total-fabricantes').text(data.fabricantes.total || 0);
+                    $('#pendentes').text(data.fabricantes.pendentes || 0);
+                    $('#em-andamento').text(data.fabricantes.em_andamento || 0); // Update this line
+                    $('#concluidos').text(data.fabricantes.concluidos || 0);
+                    $('#verificados').text(data.fabricantes.verificados || 0); // Add this line
+                },
+                error: function() { console.log('Erro ao atualizar estatísticas'); }
+            });
+        }
+        setInterval(atualizarEstatisticas, 30000);
+        
+
+        const chatWindow = document.getElementById('chat-window');
+        const chatToggle = document.getElementById('chat-toggle');
+        const chatForm = document.getElementById('chat-form');
+        const chatInput = document.getElementById('chat-input');
+        const chatBody = document.getElementById('chat-body');
+
+        chatToggle.addEventListener('click', () => {
+            chatWindow.classList.toggle('open');
+            if (chatWindow.classList.contains('open')) { chatInput.focus(); }
+        });
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const message = chatInput.value.trim();
+            if (!message) return;
+            addMessage(message, 'user');
+            chatInput.value = '';
+            showTypingIndicator();
+            try {
+                const response = await fetch('/api/chatbot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: message })
+                });
+                removeTypingIndicator();
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Erro no servidor');
+                }
+                const data = await response.json();
+                addMessage(data.answer, 'ai');
+            } catch (error) {
+                removeTypingIndicator();
+                addMessage(`Desculpe, ocorreu um erro: ${error.message}`, 'ai');
+            }
+        });
+
+        function addMessage(text, sender) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('chat-message', sender);
+            messageElement.textContent = text;
+            chatBody.appendChild(messageElement);
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const typingElement = document.createElement('div');
+            typingElement.id = 'typing-indicator';
+            typingElement.classList.add('chat-message', 'ai', 'typing');
+            typingElement.innerHTML = `<div class="dot"></div><div class="dot"></div><div class="dot"></div>`;
+            chatBody.appendChild(typingElement);
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const typingElement = document.getElementById('typing-indicator');
+            if (typingElement) { typingElement.remove(); }
+        }
+    });
+
+    function verDetalhes(fabricante) {
+        $('#fabricantes').val([fabricante]);
+        $('button[name="ver_fabricantes"]').click();
+    }
+    </script>
+</body>
+</html>
