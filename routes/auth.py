@@ -58,7 +58,7 @@ def cadastro():
             return redirect(url_for('auth.cadastro'))
 
         # --- Define o perfil (role) ---
-        GESTOR_SECRET_TOKEN = "Ranch@123" 
+        GESTOR_SECRET_TOKEN = "Token@123" 
         role = 'gestor' if gestor_token == GESTOR_SECRET_TOKEN else 'contador'
 
         # --- Cria o hash da senha ---
